@@ -5,11 +5,8 @@ import * as THREE from 'three';
 // 设置 Modal 的 app element
 Modal.setAppElement('#root');
 
-const BrainPointCloud = () => {
+const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefresh }) => {
   const mountRef = useRef(null);
-  const [brainData, setBrainData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const controlsRef = useRef(null);
   const cameraRef = useRef(null);
   const sceneRef = useRef(null);
@@ -37,9 +34,17 @@ const BrainPointCloud = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   // 添加UI准备状态
   const [uiReady, setUiReady] = useState(false);
-  // 添加团队名称状态
-  const [teamName, setTeamName] = useState("影视飓风");
-  const [editingTeamName, setEditingTeamName] = useState("影视飓风");
+  // 团队名称状态（从props初始化）
+  const [teamName, setTeamName] = useState(team?.teamName || 'TeamBrain');
+  const [editingTeamName, setEditingTeamName] = useState(team?.teamName || 'TeamBrain');
+
+  // Sync teamName when team prop changes
+  useEffect(() => {
+    if (team?.teamName) {
+      setTeamName(team.teamName);
+      setEditingTeamName(team.teamName);
+    }
+  }, [team?.teamName]);
 
   // 添加 isModalOpenRef 来存储最新值
   const isModalOpenRef = useRef(isModalOpen);
@@ -49,71 +54,31 @@ const BrainPointCloud = () => {
     isModalOpenRef.current = isModalOpen;
   }, [isModalOpen]);
 
-  // 脑区信息数据 - 初始化为可编辑状态
-  const [brainRegionInfo, setBrainRegionInfo] = useState({
-    0: [ // 左前额叶，琥珀金色
-      { name: "Tim（潘天鸿）", description: "影视飓风创始人，频道主理人，负责整体方向与内容创意" },
-      { name: "Owen", description: "联合创始人，技术总监，负责硬件与特效技术支持" },
-      { name: "运营组", description: "内容发布、商务对接、社群管理" },
-      { name: "《影视飓风》正片", description: "核心系列，深度影视制作技术分享" },
-      { name: "卫星发射计划", description: "与影石Insta360合作，将相机送上太空拍摄地球" },
-      { name: "荒岛求生100小时", description: "2025年直播挑战，累计观看1.69亿次" },
-      { name: "画质压缩揭露视频", description: "2024年引发行业热议的爆款视频" }
-    ],
-    1: [ // 右前额叶，冰蓝色
-      { name: "创意策划组", description: "选题策划、脚本撰写、分镜设计" },
-      { name: "《飓多多》", description: "轻松有趣的短内容，展现幕后日常" },
-      { name: "《亿点点不一样》", description: "旗下子账号，频频出现爆款内容" },
-      { name: "百大UP主创业故事", description: "系列纪录片，分享管理心路" },
-      { name: "MOMA猛玛代言", description: "2024年达成品牌代言合作" }
-    ],
-    2: [ // 左顶叶，淡紫色
-      { name: "摄影组", description: "负责所有视频的拍摄、灯光、构图" },
-      { name: "剪辑组", description: "后期剪辑、调色、音效" },
-      { name: "《测评》系列", description: "摄影器材、数码产品深度评测" },
-      { name: "双推流直播方案", description: "5G条件下的高画质、低延迟直播技术" }
-    ],
-    3: [ // 右顶叶，青绿色
-      { name: "商务组", description: "品牌合作、广告对接" },
-      { name: "电商组", description: "自营产品、供应链管理" },
-      { name: "B2B出海平台", description: "2025年入驻阿里国际站" },
-      { name: "合作品牌", description: "OPPO、英雄联盟、守望先锋、NOMO等" }
-    ],
-    4: [ // 小脑/脑干，珊瑚橙
-      { name: "企业文化", description: "口号：无限进步" },
-      { name: "年度iPhone福利", description: "连续多年为全体员工换新iPhone" },
-      { name: "公司规模", description: "2024年营收过亿，全网粉丝超2800万" },
-      { name: "杭州总部", description: "位于杭州市余杭区良渚街道" }
-    ]
-  });
+  // 脑区信息数据 - 从 nodes prop 构建
+  const [brainRegionInfo, setBrainRegionInfo] = useState({});
 
-  // 定义连接规则
-  const connectionRules = [
-    // 管理连接
-    { from: ["Tim（潘天鸿）", "Owen", "运营组"], to: ["创意策划组", "摄影组", "剪辑组", "商务组", "电商组"], type: "management", color: 0xffaa44, width: 0.03, flowColor: 0xffaa44 },
-    // 创意产出
-    { from: ["创意策划组"], to: ["《飓多多》", "《亿点点不一样》", "百大UP主创业故事", "MOMA猛玛代言"], type: "creative", color: 0x44aaff, width: 0.02, flowColor: 0x44aaff },
-    // 制作支持
-    { from: ["摄影组", "剪辑组"], to: ["《影视飓风》正片", "《测评》系列", "卫星发射计划", "荒岛求生100小时", "画质压缩揭露视频"], type: "production", color: 0xaa44ff, width: 0.02, flowColor: 0xaa44ff },
-    // 商业连接
-    { from: ["商务组", "电商组"], to: ["合作品牌", "B2B出海平台"], type: "business", color: 0x44ffaa, width: 0.015, flowColor: 0x44ffaa },
-    // 文化渗透（企业文化连接到所有其他节点）
-    { from: ["企业文化", "年度iPhone福利", "公司规模", "杭州总部"], to: "*", type: "culture", color: 0xff8844, width: 0.01, flowColor: 0xff8844, opacity: 0.6 }
-  ];
+  // Build brainRegionInfo from nodes (grouped by brainRegionId)
+  useEffect(() => {
+    if (!nodes || nodes.length === 0) return;
+    const info = {};
+    nodes.forEach(node => {
+      const rid = node.brainRegionId;
+      if (!info[rid]) info[rid] = [];
+      info[rid].push({ name: node.name, description: node.description || '' });
+    });
+    setBrainRegionInfo(info);
+  }, [nodes]);
 
-  // 关联映射表
-  const connections = [
-    // 管理连接（金色）
-    { from: ["Tim（潘天鸿）", "Owen", "运营组"], to: ["创意策划组", "摄影组", "剪辑组", "商务组", "电商组"], type: "management", color: 0xffaa44, width: 0.02, flowColor: 0xffaa44 },
-    // 创意产出（蓝色）
-    { from: ["创意策划组"], to: ["《飓多多》", "《亿点点不一样》", "百大UP主创业故事", "MOMA猛玛代言"], type: "creative", color: 0x44aaff, width: 0.015, flowColor: 0x44aaff },
-    // 制作支持（紫色）
-    { from: ["摄影组", "剪辑组"], to: ["《影视飓风》正片", "《测评》系列", "卫星发射计划", "荒岛求生100小时", "画质压缩揭露视频"], type: "production", color: 0xaa44ff, width: 0.015, flowColor: 0xaa44ff },
-    // 商业连接（绿色）
-    { from: ["商务组", "电商组"], to: ["合作品牌", "B2B出海平台"], type: "business", color: 0x44ffaa, width: 0.01, flowColor: 0x44ffaa },
-    // 文化渗透（橙色，企业文化连接到所有其他节点）
-    { from: ["企业文化", "年度iPhone福利", "公司规模", "杭州总部"], to: "*", type: "culture", color: 0xff8844, width: 0.008, flowColor: 0xff8844, opacity: 0.6 }
-  ];
+  // 定义连接规则（从 connRules prop 转换）
+  const connectionRules = (connRules || []).map(c => ({
+    from: [c.fromNodeName],
+    to: c.targetType === 'ALL' ? '*' : [c.toNodeName],
+    type: c.connectionType,
+    color: parseInt(c.colorHex.replace('#', ''), 16),
+    width: c.lineWidth,
+    flowColor: parseInt(c.flowColorHex.replace('#', ''), 16),
+    opacity: c.opacity,
+  }));
 
   // 连接类型图例
   const connectionLegend = [
@@ -628,14 +593,17 @@ const BrainPointCloud = () => {
     setBrainRegionInfo(editingBrainRegionInfo);
     // 更新团队名称
     setTeamName(editingTeamName);
-    
+
     // 关闭模态框
     setIsModalOpen(false);
     setActiveTab('manual');
     setHasUnsavedChanges(false);
-    
+
     // 重新生成场景
     await regenerateScene(editingBrainRegionInfo);
+
+    // 刷新后端数据
+    if (onRefresh) onRefresh();
   };
 
   // 添加新的信息条目
@@ -721,27 +689,7 @@ const BrainPointCloud = () => {
   };
 
   useEffect(() => {
-    // 从URL获取大脑数据
-    const fetchBrainData = async () => {
-      try {
-        const response = await fetch('https://gist.githubusercontent.com/PurpleFlovv/1ff62d62e30a9e33b41b1a7692b285ca/raw/0e7cbf76f457fe486d1189c502eee9bd1138a3c9/gistfile1.txt');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setBrainData(data);
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
-
-    fetchBrainData();
-  }, []);
-
-  useEffect(() => {
-    if (!mountRef.current || !brainData) return;
+    if (!mountRef.current || !brainPoints || brainPoints.length === 0) return;
 
     // 场景、相机、渲染器
     const scene = new THREE.Scene();
@@ -769,36 +717,43 @@ const BrainPointCloud = () => {
 
     // 创建点云(使用单独的球体 Mesh)
     const createPointCloud = () => {
-      // 合并所有分区的点
-      const allPoints = [];
       const localPointMeshes = [];
-      const partitionNames = [];
-      const partitionColors = [];
+
+      // Group brainPoints by regionId
+      const pointsByRegion = {};
+      brainPoints.forEach(p => {
+        if (!pointsByRegion[p.regionId]) {
+          pointsByRegion[p.regionId] = { points: [], color: p.colorHex, name: p.regionName };
+        }
+        pointsByRegion[p.regionId].points.push([p.x, p.y, p.z]);
+      });
 
       // 统计每个脑区的光点数量和信息条目分布
       const partitionStats = {};
-      brainData.forEach((partition, partitionIndex) => {
-        partitionStats[partitionIndex] = {
-          pointCount: partition.points.length,
+      Object.keys(pointsByRegion).forEach(regionId => {
+        partitionStats[regionId] = {
+          pointCount: pointsByRegion[regionId].points.length,
           infoDistribution: {}
         };
       });
 
-      brainData.forEach((partition, partitionIndex) => {
-        const { color, points } = partition;
-        const [r, g, b] = color; // 忽略 alpha
+      Object.entries(pointsByRegion).forEach(([regionId, regionData]) => {
+        const partitionIndex = parseInt(regionId);
+        const r = parseInt(regionData.color.slice(1, 3), 16);
+        const g = parseInt(regionData.color.slice(3, 5), 16);
+        const b = parseInt(regionData.color.slice(5, 7), 16);
         const pointColor = new THREE.Color(r / 255, g / 255, b / 255);
 
-        points.forEach((point, pointIndex) => {
+        regionData.points.forEach((point, pointIndex) => {
           // 调整点的坐标，让大脑朝前
           // 交换Y和Z轴，让大脑从前到后而不是从上到下
           const x = point[0];
           const y = point[2];
           const z = point[1];
-          
+
           // 创建球体几何体 - 减小半径从0.05到0.03
           const geometry = new THREE.SphereGeometry(0.02, 16, 16); // 进一步减小半径
-          
+
           // 创建材质 - 增加基础亮度
           const material = new THREE.MeshPhongMaterial({
             color: pointColor,
@@ -808,33 +763,35 @@ const BrainPointCloud = () => {
             emissive: pointColor.clone().multiplyScalar(0.5), // 增加自发光，使用点本身的颜色
             emissiveIntensity: 0.5 // 设置自发光强度
           });
-          
+
           // 创建网格对象
           const sphere = new THREE.Mesh(geometry, material);
           sphere.position.set(x, y, z);
-          
-          // 为每个点随机分配脑区信息
-          const regionInfo = brainRegionInfo[partitionIndex] || brainRegionInfo[0];
-          const randomInfo = regionInfo[Math.floor(Math.random() * regionInfo.length)];
-          
-          sphere.userData = { 
-            partitionIndex, 
-            partitionName: `分区 ${partitionIndex + 1}`,
+
+          // 为每个点随机分配脑区信息（从 nodes prop）
+          const regionNodes = nodes.filter(n => n.brainRegionId === parseInt(regionId));
+          const randomNode = regionNodes.length > 0
+            ? regionNodes[Math.floor(Math.random() * regionNodes.length)]
+            : { name: '未分配', description: '' };
+
+          sphere.userData = {
+            partitionIndex,
+            partitionName: regionData.name,
             partitionColor: pointColor,
-            infoName: randomInfo.name,
-            infoDescription: randomInfo.description,
-            infoKey: randomInfo.name // 确保每个光点都有infoKey属性
+            infoName: randomNode.name,
+            infoDescription: randomNode.description || '',
+            infoKey: randomNode.name // 确保每个光点都有infoKey属性
           };
-          
+
           // 更新统计信息
-          if (!partitionStats[partitionIndex].infoDistribution[randomInfo.name]) {
-            partitionStats[partitionIndex].infoDistribution[randomInfo.name] = 0;
+          if (!partitionStats[regionId].infoDistribution[randomNode.name]) {
+            partitionStats[regionId].infoDistribution[randomNode.name] = 0;
           }
-          partitionStats[partitionIndex].infoDistribution[randomInfo.name]++;
-          
+          partitionStats[regionId].infoDistribution[randomNode.name]++;
+
           scene.add(sphere);
           localPointMeshes.push(sphere);
-          
+
           // 保存原始材质以便恢复
           originalMaterialsRef.current.set(sphere.uuid, {
             color: pointColor.clone(),
@@ -1170,7 +1127,7 @@ const BrainPointCloud = () => {
         mountRef.current.removeChild(renderer.domElement);
       }
     };
-  }, [brainData, brainRegionInfo]); // 移除了 isModalOpen 依赖
+  }, [brainRegionInfo, brainPoints, connRules]); // 使用 props 数据作为依赖
 
   // 监听 showConnections 状态变化，控制连接线显隐
   useEffect(() => {
@@ -1193,28 +1150,12 @@ const BrainPointCloud = () => {
     }
   }, [highlightedNodeRef.current, showConnections]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center w-full h-screen bg-black">
-        <div className="text-white text-xl">加载大脑数据中...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center w-full h-screen bg-black">
-        <div className="text-red-500 text-xl">加载失败: {error}</div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative w-full h-screen overflow-hidden">
       <div ref={mountRef} className="absolute inset-0" />
       {/* 根据 uiReady 状态控制 UI 元素的显示 */}
       <div className={`absolute top-8 left-8 text-white z-10 transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
-        <h1 className="text-4xl font-bold">{teamName}大脑</h1>
+        <h1 className="text-4xl font-bold">{team?.teamName || 'TeamBrain'}大脑</h1>
         <p className="text-sm opacity-80">基于真实大脑分区数据</p>
       </div>
       
@@ -1235,30 +1176,23 @@ const BrainPointCloud = () => {
       
       {/* 控制面板 */}
       <div className={`absolute bottom-8 right-8 bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 text-white z-10 max-w-xs transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
-        <h2 className="text-lg font-bold mb-1">{teamName} · 团队大脑</h2>
+        <h2 className="text-lg font-bold mb-1">{team?.teamName || 'TeamBrain'} · 团队大脑</h2>
         <p className="text-xs opacity-80 mb-3">无限进步 | 全网粉丝2800万+</p>
         
         <div className="space-y-2 mb-3">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-            <span className="text-xs">左前额叶 - 核心管理层</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-cyan-400"></div>
-            <span className="text-xs">右前额叶 - 创意策划</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-purple-400"></div>
-            <span className="text-xs">左顶叶 - 技术执行</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-green-400"></div>
-            <span className="text-xs">右顶叶 - 商务运营</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 rounded-full bg-orange-400"></div>
-            <span className="text-xs">小脑/脑干 - 企业文化</span>
-          </div>
+          {regions && regions.length > 0 ? (
+            regions.map(r => (
+              <div key={r.id} className="flex items-center space-x-2">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: r.colorHex }}></div>
+                <span className="text-xs">{r.name}</span>
+              </div>
+            ))
+          ) : (
+            <div className="flex items-center space-x-2">
+              <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+              <span className="text-xs">加载脑区数据中...</span>
+            </div>
+          )}
         </div>
         
         {/* 连接类型图例 */}
@@ -1393,7 +1327,7 @@ const BrainPointCloud = () => {
                 {Object.keys(editingBrainRegionInfo).map(partitionIndex => (
                   <div key={partitionIndex} className="border border-white border-opacity-20 rounded-lg p-4">
                     <h3 className="text-lg font-bold mb-2">
-                      脑区 {partitionIndex} ({['左前额叶', '右前额叶', '左顶叶', '右顶叶', '小脑/脑干'][partitionIndex]})
+                      脑区 {partitionIndex} ({regions?.find(r => r.id === parseInt(partitionIndex))?.name || `脑区 ${partitionIndex}`})
                     </h3>
                     <div className="space-y-2">
                       {editingBrainRegionInfo[partitionIndex].map((entry, entryIndex) => (
