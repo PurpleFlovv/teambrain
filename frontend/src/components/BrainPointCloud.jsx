@@ -2,6 +2,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Modal from 'react-modal';
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
+import api from '../services/api';
 // 设置 Modal 的 app element
 Modal.setAppElement('#root');
 
@@ -22,6 +23,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const flowParticlesRef = useRef([]);
   const highlightedNodeRef = useRef(null);
   const [showConnections, setShowConnections] = useState(true);
+  const showConnectionsRef = useRef(true);
   const activeFlowParticlesRef = useRef([]);
   
   // 添加团队信息编辑相关的状态
@@ -31,7 +33,9 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const [isUpdatingScene, setIsUpdatingScene] = useState(false);
   const [pointMeshes, setPointMeshes] = useState([]);
   const fileInputRef = useRef(null);
+  const mouseDownPos = useRef({ x: 0, y: 0 });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   // 添加UI准备状态
   const [uiReady, setUiReady] = useState(false);
   // 团队名称状态（从props初始化）
@@ -59,15 +63,21 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
   // Build brainRegionInfo from nodes (grouped by brainRegionId)
   useEffect(() => {
-    if (!nodes || nodes.length === 0) return;
     const info = {};
-    nodes.forEach(node => {
-      const rid = node.brainRegionId;
-      if (!info[rid]) info[rid] = [];
-      info[rid].push({ name: node.name, description: node.description || '' });
-    });
+    // Initialize all brain regions with empty arrays
+    if (regions) {
+      regions.forEach(r => { info[r.id] = []; });
+    }
+    // Fill in from nodes
+    if (nodes) {
+      nodes.forEach(node => {
+        const rid = node.brainRegionId;
+        if (!info[rid]) info[rid] = [];
+        info[rid].push({ id: node.id, name: node.name, description: node.description || '' });
+      });
+    }
     setBrainRegionInfo(info);
-  }, [nodes]);
+  }, [nodes, regions]);
 
   // 定义连接规则（从 connRules prop 转换）
   const connectionRules = (connRules || []).map(c => ({
@@ -558,7 +568,10 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       
       // 重新生成连接线
       createDynamicConnections(pointMeshes);
-      
+      if (!showConnectionsRef.current && !highlightedNodeRef.current) {
+        toggleConnectionsVisibility(false);
+      }
+
       // 重置高亮状态
       highlightedNodeRef.current = null;
       setIsNodeListExpanded(false);
@@ -574,7 +587,14 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
   // 打开模态框时初始化编辑数据和未保存更改状态
   const openModal = () => {
-    setEditingBrainRegionInfo(JSON.parse(JSON.stringify(brainRegionInfo)));
+    const info = JSON.parse(JSON.stringify(brainRegionInfo));
+    // 确保所有脑区都有编辑入口（即使该脑区暂无节点）
+    if (regions) {
+      regions.forEach(r => {
+        if (!info[r.id]) info[r.id] = [];
+      });
+    }
+    setEditingBrainRegionInfo(info);
     setEditingTeamName(teamName);
     setHasUnsavedChanges(false);
     setIsModalOpen(true);
@@ -589,21 +609,66 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
   // 保存编辑的数据
   const saveChanges = async () => {
-    // 更新脑区信息
-    setBrainRegionInfo(editingBrainRegionInfo);
-    // 更新团队名称
-    setTeamName(editingTeamName);
-
-    // 关闭模态框
+    const teamId = team?.id;
     setIsModalOpen(false);
     setActiveTab('manual');
     setHasUnsavedChanges(false);
 
-    // 重新生成场景
-    await regenerateScene(editingBrainRegionInfo);
+    if (!teamId) return;
 
-    // 刷新后端数据
-    if (onRefresh) onRefresh();
+    try {
+      // 更新团队名称
+      if (editingTeamName !== teamName) {
+        await api.put(`/teams/${teamId}`, { teamName: editingTeamName });
+      }
+
+      // 同步节点变更
+      const oldInfo = brainRegionInfo;
+      const newInfo = editingBrainRegionInfo;
+
+      for (const rid of Object.keys(newInfo)) {
+        const oldEntries = oldInfo[rid] || [];
+        const newEntries = newInfo[rid] || [];
+
+        // DELETE: entries removed by user
+        for (const oldEntry of oldEntries) {
+          if (oldEntry.id && !newEntries.find(e => e.id === oldEntry.id)) {
+            await api.delete(`/nodes/${oldEntry.id}`).catch(() => {});
+          }
+        }
+
+        // CREATE or UPDATE
+        for (const newEntry of newEntries) {
+          if (newEntry.id) {
+            const old = oldEntries.find(e => e.id === newEntry.id);
+            if (old && (old.name !== newEntry.name || old.description !== newEntry.description)) {
+              await api.put(`/nodes/${newEntry.id}`, {
+                name: newEntry.name,
+                description: newEntry.description,
+              }).catch(() => {});
+            }
+          } else {
+            await api.post(`/teams/${teamId}/nodes`, {
+              name: newEntry.name,
+              description: newEntry.description || '',
+              nodeType: 'MEMBER',
+              brainRegionId: parseInt(rid),
+            }).catch(() => {});
+          }
+        }
+      }
+
+      // 延迟刷新数据，显示加载指示器
+      if (onRefresh) {
+        setIsSaving(true);
+        setTimeout(async () => {
+          try { await onRefresh(); } catch (e) { console.error(e); }
+          setIsSaving(false);
+        }, 100);
+      }
+    } catch (err) {
+      console.error('保存失败:', err);
+    }
   };
 
   // 添加新的信息条目
@@ -818,6 +883,9 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       
       // 创建全光点动态神经连接
       createDynamicConnections(localPointMeshes);
+      if (!showConnectionsRef.current) {
+        toggleConnectionsVisibility(false);
+      }
 
       // 保存光点网格引用
       setPointMeshes(localPointMeshes);
@@ -1076,39 +1144,49 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     };
     window.addEventListener('resize', handleResize);
 
-    // 点击事件处理 - 使用 isModalOpenRef.current 替代 isModalOpen
-    const handleClick = (event) => {
-      // 如果模态框打开，禁用点击检测
+    // 点击事件处理 - mousedown + mouseup 配合，拖拽时不触发
+    const handleMouseDown = (event) => {
+      mouseDownPos.current = { x: event.clientX, y: event.clientY };
+    };
+
+    const handleMouseUp = (event) => {
+      // 如果模态框打开，禁用
       if (isModalOpenRef.current) return;
-      
+
+      // 拖拽距离超过阈值则不触发点击
+      const dx = event.clientX - mouseDownPos.current.x;
+      const dy = event.clientY - mouseDownPos.current.y;
+      if (Math.sqrt(dx * dx + dy * dy) > 3) return;
+
       // 更新鼠标位置
       mouseRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouseRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      
+
       // 更新射线投射器
       if (cameraRef.current) {
         raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
-        
+
         // 检测与代表节点的相交
         const intersects = raycasterRef.current.intersectObjects(localPointMeshes);
-        
+
         if (intersects.length > 0) {
           const clickedObject = intersects[0].object;
           const infoKey = clickedObject.userData.infoKey;
-          
+
           if (infoKey) {
             // 临时显示连接线（覆盖复选框状态）
             if (!showConnections) {
               toggleConnectionsVisibility(true);
             }
-            
+
             highlightConnections(infoKey);
           }
         }
       }
     };
 
-    window.addEventListener('click', handleClick);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mouseup', handleMouseUp);
 
     // 清理
     return () => {
@@ -1116,7 +1194,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('click', handleClick);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mouseup', handleMouseUp);
       cancelAnimationFrame(frameId);
       controls.dispose();
       renderer.dispose();
@@ -1131,6 +1210,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
   // 监听 showConnections 状态变化，控制连接线显隐
   useEffect(() => {
+    showConnectionsRef.current = showConnections;
     if (showConnections) {
       toggleConnectionsVisibility(true);
     } else {
@@ -1153,20 +1233,19 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   return (
     <div className="relative w-full h-screen overflow-hidden">
       <div ref={mountRef} className="absolute inset-0" />
+      {/* 保存时加载叠加层 */}
+      {isSaving && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm transition-all duration-300">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-white text-sm">更新中...</p>
+          </div>
+        </div>
+      )}
       {/* 根据 uiReady 状态控制 UI 元素的显示 */}
       <div className={`absolute top-8 left-8 text-white z-10 transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
         <h1 className="text-4xl font-bold">{team?.teamName || 'TeamBrain'}大脑</h1>
         <p className="text-sm opacity-80">基于真实大脑分区数据</p>
-      </div>
-      
-      {/* 添加编辑团队信息按钮 */}
-      <div className={`absolute top-8 right-8 z-10 transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
-        <button
-          onClick={openModal}
-          className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg px-4 py-2 text-white text-sm hover:bg-opacity-50 transition-all duration-200"
-        >
-          编辑团队信息
-        </button>
       </div>
       
       {/* 更新提示文字：将"WASD移动"改为"W/S上下移动" */}
