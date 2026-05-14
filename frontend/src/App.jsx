@@ -3,6 +3,10 @@ import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import Index from "./pages/Index";
+import MyTeams from "./pages/MyTeams";
+import TeamSquare from "./pages/TeamSquare";
+import JoinTeam from "./pages/JoinTeam";
+import Profile from "./pages/Profile";
 import AdminPage from "./pages/AdminPage";
 import Navbar from "./components/Navbar";
 
@@ -30,14 +34,10 @@ const ProtectedLayout = ({ children }) => (
   </ProtectedRoute>
 );
 
-// Placeholder pages (created for routes that don't have full pages yet)
+// Placeholder for routes that don't have full pages yet
 const Placeholder = ({ title }) => (
   <div className="flex items-center justify-center h-full text-white text-opacity-60"><p>{title}</p></div>
 );
-const MyTeams = () => <Placeholder title="我的团队" />;
-const TeamSquare = () => <Placeholder title="团队广场" />;
-const JoinTeam = () => <Placeholder title="加入团队" />;
-const Profile = () => <Placeholder title="个人信息" />;
 const MyTeamDetail = () => <Placeholder title="团队详情" />;
 
 const AppRoutes = () => (

@@ -12,7 +12,6 @@ const MENU = [
   { key: '', label: '仪表盘', icon: '📊' },
   { key: 'users', label: '用户管理', icon: '👥' },
   { key: 'teams', label: '团队管理', icon: '🏢' },
-  { key: 'regions', label: '脑区管理', icon: '🧠' },
   { key: 'logs', label: '操作日志', icon: '📝' },
 ];
 
@@ -432,76 +431,6 @@ const TeamDetail = () => {
   );
 };
 
-// ---- Region Management ----
-const RegionList = () => {
-  const { regions } = useBrainData();
-  const [editing, setEditing] = useState(null);
-  const [list, setList] = useState([]);
-
-  useEffect(() => { setList([...regions]); }, [regions]);
-
-  const handleSave = async () => {
-    await api.put(`/admin/regions/${editing.id}`, { name: editing.name, colorHex: editing.colorHex });
-    setEditing(null);
-  };
-
-  return (
-    <div className="p-6">
-      <h2 className="text-xl font-bold text-white mb-6">脑区管理</h2>
-      <div className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg overflow-hidden">
-        <table className="w-full text-white text-sm">
-          <thead>
-            <tr className="border-b border-white border-opacity-10 text-left">
-              <th className="p-3 opacity-60">名称</th><th className="p-3 opacity-60">颜色</th><th className="p-3 opacity-60">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {list.map(r => (
-              <tr key={r.id} className="border-b border-white border-opacity-5 hover:bg-white hover:bg-opacity-5">
-                <td className="p-3 flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: r.colorHex }} />
-                  <span>{r.name}</span>
-                </td>
-                <td className="p-3 font-mono text-xs">{r.colorHex}</td>
-                <td className="p-3">
-                  <button onClick={() => setEditing({ ...r })} className="text-blue-400 hover:underline text-xs">编辑</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="bg-black bg-opacity-80 border border-white border-opacity-20 rounded-lg p-6 w-96">
-            <h3 className="text-white text-lg font-bold mb-4">编辑脑区</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-white text-sm mb-1">名称</label>
-                <input type="text" value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })}
-                  className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
-              </div>
-              <div>
-                <label className="block text-white text-sm mb-1">颜色</label>
-                <div className="flex items-center space-x-2">
-                  <input type="color" value={editing.colorHex} onChange={e => setEditing({ ...editing, colorHex: e.target.value })}
-                    className="w-10 h-10 rounded cursor-pointer" />
-                  <input type="text" value={editing.colorHex} onChange={e => setEditing({ ...editing, colorHex: e.target.value })}
-                    className="flex-1 bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm font-mono" />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-3 pt-2">
-                <button onClick={() => setEditing(null)} className="px-4 py-2 rounded text-sm bg-gray-500 bg-opacity-50 text-white">取消</button>
-                <button onClick={handleSave} className="px-4 py-2 rounded text-sm bg-blue-500 bg-opacity-50 text-white">保存</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
 // ---- Audit Log ----
 const LogList = () => {
   const [logs, setLogs] = useState([]);
@@ -582,7 +511,6 @@ const AdminPage = () => {
     switch (subPath) {
       case 'users': return <UserList />;
       case 'teams': return <TeamList />;
-      case 'regions': return <RegionList />;
       case 'logs': return <LogList />;
       default: return <Dashboard />;
     }
