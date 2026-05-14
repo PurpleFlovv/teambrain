@@ -231,7 +231,7 @@ const MyTeamDetail = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex justify-center border-b border-white border-opacity-20">
+      <div className="flex justify-center border-b border-[var(--glass-border)]">
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`px-6 py-3 text-sm transition-colors ${tab === t.key ? 'border-b-2 border-white text-white' : 'text-white text-opacity-60 hover:text-opacity-100'}`}>
@@ -266,9 +266,9 @@ const MyTeamDetail = () => {
                   + 新建节点
                 </button>
                 <input type="text" placeholder="搜索节点..." value={nodeSearch} onChange={e => setNodeSearch(e.target.value)}
-                  className="flex-1 bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
+                  className="flex-1 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
                 <select value={regionFilter} onChange={e => setRegionFilter(e.target.value)}
-                  className="bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-2 py-2 text-white text-sm">
+                  className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-2 py-2 text-[var(--text-primary)] text-sm">
                   <option value="">全部脑区</option>
                   {teamRegions.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
@@ -410,7 +410,7 @@ const MyTeamDetail = () => {
                 </p>
               )}
             </div>
-            <div className="bg-black bg-opacity-30 p-4 rounded">
+            <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded p-4">
               <h3 className="text-white font-bold mb-2">格式说明</h3>
               <pre className="text-xs text-white text-opacity-60 whitespace-pre-wrap">
 {`{
