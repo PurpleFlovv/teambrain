@@ -13,14 +13,14 @@ import Navbar from "./components/Navbar";
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="flex items-center justify-center h-screen bg-black text-white">加载中...</div>;
+  if (loading) return <div className="flex items-center justify-center h-screen bg-[var(--bg-deep-space)] text-[var(--text-muted)]">加载中...</div>;
   if (!user) return <Navigate to="/login" />;
   return children;
 };
 
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="flex items-center justify-center h-screen bg-black text-white">加载中...</div>;
+  if (loading) return <div className="flex items-center justify-center h-screen bg-[var(--bg-deep-space)] text-[var(--text-muted)]">加载中...</div>;
   if (!user) return <Navigate to="/login" />;
   if (!user.roles || !user.roles.includes('ADMIN')) return <Navigate to="/" />;
   return children;
@@ -28,7 +28,7 @@ const AdminRoute = ({ children }) => {
 
 const ProtectedLayout = ({ children }) => (
   <ProtectedRoute>
-    <div className="flex flex-col h-screen bg-black">
+    <div className="flex flex-col h-screen bg-[var(--bg-deep-space)]">
       <Navbar />
       <div className="flex-1 overflow-hidden">{children}</div>
     </div>
