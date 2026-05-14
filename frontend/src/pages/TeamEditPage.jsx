@@ -7,6 +7,11 @@ import api from '../services/api';
 import NodeModal from '../components/shared/NodeModal';
 import RegionModal from '../components/shared/RegionModal';
 import DeleteRegionModal from '../components/shared/DeleteRegionModal';
+import FormField from '../components/shared/FormField';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 const TABS = [
   { key: 'info', label: '编辑信息' },
@@ -101,7 +106,7 @@ const TeamEditPage = () => {
       setNodeModal(null);
       refresh();
     } catch (err) {
-      alert('保存失败: ' + (err.response?.data?.message || err.message));
+      toast.error('保存失败: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -111,7 +116,7 @@ const TeamEditPage = () => {
       await api.delete(`/nodes/${node.id}`);
       refresh();
     } catch (err) {
-      alert('删除失败: ' + (err.response?.data?.message || err.message));
+      toast.error('删除失败: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -140,7 +145,7 @@ const TeamEditPage = () => {
       loadTeamRegions();
       refresh();
     } catch (err) {
-      alert('保存失败: ' + (err.response?.data?.message || err.message));
+      toast.error('保存失败: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -149,7 +154,7 @@ const TeamEditPage = () => {
     const targetRegions = teamRegions.filter(r => r.id !== region.id);
     // Only allow delete if not the last region
     if (teamRegions.length <= 1) {
-      alert('至少需要保留一个脑区');
+      toast.error('至少需要保留一个脑区');
       return;
     }
     setDeleteRegionModal({ region, regionNodes, targetRegions });
@@ -164,7 +169,7 @@ const TeamEditPage = () => {
       loadTeamRegions();
       refresh();
     } catch (err) {
-      alert('删除失败: ' + (err.response?.data?.message || err.message));
+      toast.error('删除失败: ' + (err.response?.data?.message || err.message));
     }
   };
 
@@ -249,20 +254,13 @@ const TeamEditPage = () => {
         {/* ---- Info Tab ---- */}
         {tab === 'info' && (
           <div className="max-w-lg mx-auto p-6 space-y-4">
-            <div>
-              <label className="block text-white text-sm mb-1">团队名称</label>
-              <input value={teamName} onChange={e => setTeamName(e.target.value)}
-                className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white" />
-            </div>
-            <div>
-              <label className="block text-white text-sm mb-1">描述</label>
-              <textarea value={teamDesc} onChange={e => setTeamDesc(e.target.value)} rows={4}
-                className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white" />
-            </div>
-            <button onClick={saveInfo}
-              className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 px-6 py-2 rounded text-white">
-              保存
-            </button>
+            <FormField label="团队名称">
+              <Input value={teamName} onChange={e => setTeamName(e.target.value)} />
+            </FormField>
+            <FormField label="描述">
+              <Textarea value={teamDesc} onChange={e => setTeamDesc(e.target.value)} rows={4} />
+            </FormField>
+            <Button onClick={saveInfo}>保存</Button>
           </div>
         )}
 
