@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Users, Building2, ScrollText, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBrainData } from '../hooks/useBrainData';
 import { useTeamData } from '../hooks/useTeamData';
@@ -8,11 +9,11 @@ import BrainPointCloud from '../components/BrainPointCloud';
 import TeamEditPage from './TeamEditPage';
 import api from '../services/api';
 
-const MENU = [
-  { key: '', label: '仪表盘', icon: '📊' },
-  { key: 'users', label: '用户管理', icon: '👥' },
-  { key: 'teams', label: '团队管理', icon: '🏢' },
-  { key: 'logs', label: '操作日志', icon: '📝' },
+const ADMIN_TABS = [
+  { key: '', label: '仪表盘', icon: LayoutDashboard },
+  { key: 'users', label: '用户管理', icon: Users },
+  { key: 'teams', label: '团队管理', icon: Building2 },
+  { key: 'logs', label: '操作日志', icon: ScrollText },
 ];
 
 // ---- Dashboard ----
@@ -50,7 +51,7 @@ const Dashboard = () => {
       <div className="flex items-center space-x-3">
         <label className="text-white text-sm opacity-60">选择团队：</label>
         <select value={selectedTeamId || ''} onChange={e => setSelectedTeamId(parseInt(e.target.value))}
-          className="bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-1.5 text-white text-sm">
+          className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-1.5 text-[var(--text-primary)] text-sm">
           {teams.map(t => <option key={t.id} value={t.id}>{t.teamName}</option>)}
         </select>
       </div>
@@ -62,7 +63,7 @@ const Dashboard = () => {
           { label: '脑区', value: new Set(nodes.map(n => n.brainRegionId)).size, color: '#44ffaa' },
           { label: '连接', value: connections.length, color: '#ffaa44' },
         ].map(c => (
-          <div key={c.label} className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-3 min-w-[120px] text-center">
+          <div key={c.label} className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg p-3 min-w-[120px] text-center">
             <div className="text-2xl font-bold text-white">{c.value}</div>
             <div className="text-xs opacity-60 text-white mt-1">{c.label}</div>
           </div>
@@ -70,13 +71,13 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-4" style={{ maxHeight: 'min(50vh, 420px)' }}>
-        <div className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 flex flex-col">
+        <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg p-4 flex flex-col">
           <h3 className="text-white text-sm font-bold mb-3">3D 脑区预览</h3>
           <div className="flex-1 flex items-center justify-center">
             <MiniBrain brainPoints={brainPoints} regions={regions} width={360} height={Math.min(window.innerHeight * 0.4, 360)} />
           </div>
         </div>
-        <div className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 flex flex-col">
+        <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg p-4 flex flex-col">
           <h3 className="text-white text-sm font-bold mb-3">脑区节点分布</h3>
           <div className="space-y-3 mt-2 flex-1 overflow-y-auto">
             {regionEntries.map(({ name, color, count }) => {
@@ -97,15 +98,15 @@ const Dashboard = () => {
       </div>
 
       {stats && (
-        <div className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 flex justify-around">
-          <button onClick={() => navigate('/admin/users')} className="text-white text-sm hover:underline">
-            👥 {stats.userCount} 用户
+        <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg p-4 flex justify-around">
+          <button onClick={() => navigate('/admin/users')} className="text-sm text-[var(--text-primary)] hover:text-[var(--accent)] flex items-center space-x-1">
+            <Users className="w-4 h-4" /> <span>{stats.userCount} 用户</span>
           </button>
-          <button onClick={() => navigate('/admin/teams')} className="text-white text-sm hover:underline">
-            🏢 {stats.teamCount} 团队
+          <button onClick={() => navigate('/admin/teams')} className="text-sm text-[var(--text-primary)] hover:text-[var(--accent)] flex items-center space-x-1">
+            <Building2 className="w-4 h-4" /> <span>{stats.teamCount} 团队</span>
           </button>
-          <button onClick={() => navigate('/admin/logs')} className="text-white text-sm hover:underline">
-            📝 {stats.nodeCount} 节点
+          <button onClick={() => navigate('/admin/logs')} className="text-sm text-[var(--text-primary)] hover:text-[var(--accent)] flex items-center space-x-1">
+            <FileText className="w-4 h-4" /> <span>{stats.nodeCount} 节点</span>
           </button>
         </div>
       )}
@@ -137,19 +138,19 @@ const UserForm = ({ initial, onSave, onCancel }) => {
       <div>
         <label className="block text-white text-sm mb-1">用户名</label>
         <input type="text" value={username} onChange={e => setUsername(e.target.value)}
-          className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
+          className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
         {errors.username && <p className="text-red-400 text-xs mt-1">{errors.username}</p>}
       </div>
       <div>
         <label className="block text-white text-sm mb-1">邮箱</label>
         <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-          className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
+          className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
         {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
       </div>
       <div>
         <label className="block text-white text-sm mb-1">{initial ? '新密码（留空不修改）' : '密码'}</label>
         <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-          className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
+          className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
         {errors.password && <p className="text-red-400 text-xs mt-1">{errors.password}</p>}
       </div>
       <div>
@@ -212,16 +213,16 @@ const UserList = () => {
       </div>
       <div className="flex items-center mb-4">
         <input type="text" placeholder="搜索用户名或邮箱..." value={search} onChange={e => setSearch(e.target.value)}
-          className="flex-1 bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
+          className="flex-1 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
         <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}
-          className="bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-1.5 text-white text-sm ml-2">
+          className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-1.5 text-[var(--text-primary)] text-sm ml-2">
           <option value="">全部团队</option>
           {[...new Map(users.filter(u => u.teamId).map(u => [u.teamId, u.teamName])).entries()].map(([id, name]) => (
             <option key={id} value={id}>{name}</option>
           ))}
         </select>
       </div>
-      <div className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg overflow-hidden">
+      <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg overflow-hidden">
         <table className="w-full text-white text-sm">
           <thead>
             <tr className="border-b border-white border-opacity-10 text-left">
@@ -258,7 +259,7 @@ const UserList = () => {
       </div>
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="bg-black bg-opacity-80 backdrop-blur-md border border-white border-opacity-20 rounded-lg p-6 w-96">
+          <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg p-6 w-96">
             <h3 className="text-white text-lg font-bold mb-4">{modal === 'create' ? '新建用户' : '编辑用户'}</h3>
             <UserForm initial={modal === 'create' ? null : modal} onSave={handleSave} onCancel={() => setModal(null)} />
           </div>
@@ -301,8 +302,8 @@ const TeamList = () => {
         <button onClick={() => { setNewTeamName(''); setNewTeamDesc(''); setCreateModal(true); }} className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 px-4 py-2 rounded text-white text-sm">+ 新建团队</button>
       </div>
       <input type="text" placeholder="搜索团队名或所有者..." value={search} onChange={e => setSearch(e.target.value)}
-        className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm mb-4" />
-      <div className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg overflow-hidden">
+        className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm mb-4" />
+      <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg overflow-hidden">
         <table className="w-full text-white text-sm">
           <thead>
             <tr className="border-b border-white border-opacity-10 text-left">
@@ -327,18 +328,18 @@ const TeamList = () => {
       </div>
       {createModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="bg-black bg-opacity-80 border border-white border-opacity-20 rounded-lg p-6 w-96">
+          <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg p-6 w-96">
             <h3 className="text-white text-lg font-bold mb-4">新建团队</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-white text-sm mb-1">团队名称</label>
                 <input type="text" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="团队名称"
-                  className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
+                  className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
               </div>
               <div>
                 <label className="block text-white text-sm mb-1">团队描述</label>
                 <input type="text" value={newTeamDesc} onChange={e => setNewTeamDesc(e.target.value)} placeholder="团队描述"
-                  className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
+                  className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
               </div>
               <div className="flex justify-end space-x-3 pt-2">
                 <button onClick={() => setCreateModal(false)} className="px-4 py-2 rounded text-sm bg-gray-500 bg-opacity-50 text-white">取消</button>
@@ -390,7 +391,7 @@ const TeamDetail = () => {
           <h3 className="text-white font-bold mb-3">节点列表 ({nodes.length})</h3>
           <div className="space-y-2">
             {nodes.map(n => (
-              <div key={n.id} className="bg-black bg-opacity-30 border border-white border-opacity-10 rounded p-2">
+              <div key={n.id} className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded p-2">
                 <div className="text-white text-sm font-bold">{n.name}</div>
                 <div className="text-xs opacity-60 text-white mt-1">
                   <span className={`px-1.5 py-0.5 rounded ${n.nodeType === 'MEMBER' ? 'bg-blue-500 bg-opacity-30' : 'bg-purple-500 bg-opacity-30'}`}>{n.nodeType === 'MEMBER' ? '成员' : '项目'}</span>
@@ -424,7 +425,7 @@ const LogList = () => {
       <div className="flex items-center space-x-2 mb-4">
         <label className="text-white text-sm opacity-60">操作类型：</label>
         <select value={action} onChange={e => { setAction(e.target.value); setPage(0); }}
-          className="bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-1.5 text-white text-sm">
+          className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-1.5 text-[var(--text-primary)] text-sm">
           <option value="">全部</option>
           <option value="CREATE_USER">CREATE_USER</option>
           <option value="UPDATE_USER">UPDATE_USER</option>
@@ -434,7 +435,7 @@ const LogList = () => {
           <option value="UPDATE_REGION">UPDATE_REGION</option>
         </select>
       </div>
-      <div className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg overflow-hidden">
+      <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg overflow-hidden">
         <table className="w-full text-white text-sm">
           <thead>
             <tr className="border-b border-white border-opacity-10 text-left">
@@ -491,26 +492,27 @@ const AdminPage = () => {
   })();
 
   return (
-    <div className="flex h-screen bg-black">
-      {/* Sidebar */}
-      <div className="w-56 border-r border-white border-opacity-10 flex flex-col shrink-0">
-        <div className="p-4 border-b border-white border-opacity-10">
-          <h1 className="text-white font-bold text-lg">TeamBrain 管理</h1>
-        </div>
-        <div className="flex-1 py-4">
-          {MENU.map(m => (
-            <button key={m.key} onClick={() => navigate(m.key ? `/admin/${m.key}` : '/admin')}
-              className={`w-full text-left px-4 py-3 text-sm flex items-center space-x-3 transition-colors
-                ${menuKey === m.key ? 'bg-white bg-opacity-10 text-white border-r-2 border-blue-400' : 'text-white text-opacity-60 hover:bg-white hover:bg-opacity-5'}`}>
-              <span>{m.icon}</span><span>{m.label}</span>
-            </button>
-          ))}
-        </div>
-        <div className="p-4 border-t border-white border-opacity-10">
-          <button onClick={() => navigate('/')} className="w-full text-left px-3 py-2 text-sm text-white text-opacity-60 hover:bg-white hover:bg-opacity-5 rounded flex items-center space-x-2">
-            <span>←</span><span>返回大脑</span>
-          </button>
-          <div className="text-white text-xs opacity-40 px-3 mt-2">{user?.username}</div>
+    <div className="flex flex-col h-full bg-[var(--bg-deep-space)]">
+      {/* Admin tab bar */}
+      <div className="border-b border-[var(--glass-border)] bg-[var(--bg-deep-space)]">
+        <div className="max-w-7xl mx-auto px-6 flex">
+          {ADMIN_TABS.map(m => {
+            const active = (m.key === 'teams' && subPath.startsWith('teams/')) || menuKey === m.key;
+            return (
+              <button
+                key={m.key}
+                onClick={() => navigate(m.key ? `/admin/${m.key}` : '/admin')}
+                className={`px-5 py-3 text-sm flex items-center space-x-2 transition-colors border-b-2 ${
+                  active
+                    ? 'border-[var(--accent)] text-[var(--accent)]'
+                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <m.icon className="w-4 h-4" />
+                <span>{m.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
       {/* Content */}

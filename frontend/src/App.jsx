@@ -45,7 +45,7 @@ const AppRoutes = () => (
       <Route path="/teams" element={<ProtectedLayout><TeamSquare /></ProtectedLayout>} />
       <Route path="/join-team" element={<ProtectedLayout><JoinTeam /></ProtectedLayout>} />
       <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
-      <Route path="/admin/*" element={<AdminRoute><AdminPage /></AdminRoute>} />
+      <Route path="/admin/*" element={<ProtectedLayout><AdminRoute><AdminPage /></AdminRoute></ProtectedLayout>} />
     </Routes>
   </HashRouter>
 );
