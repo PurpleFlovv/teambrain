@@ -54,7 +54,7 @@ public class AuthService {
 
         List<String> roles = List.of("USER");
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), roles);
-        return new LoginResponse(token, user.getId(), user.getUsername(), team.getId());
+        return new LoginResponse(token, user.getId(), user.getUsername(), team.getId(), roles);
     }
 
     public LoginResponse login(LoginRequest request) {
@@ -70,10 +70,10 @@ public class AuthService {
         }
 
         Team team = teamRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new RuntimeException("团队未找到"));
+                .orElseGet(() -> teamRepository.save(new Team(user.getUsername() + "的团队", "团队大脑", user)));
 
         List<String> roles = user.getRoles().stream().map(Role::getName).toList();
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), roles);
-        return new LoginResponse(token, user.getId(), user.getUsername(), team.getId());
+        return new LoginResponse(token, user.getId(), user.getUsername(), team.getId(), roles);
     }
 }

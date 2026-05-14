@@ -279,7 +279,7 @@ const MyTeamDetail = () => {
 
   // ---- Node Operations ----
   const handleDrop = async (nodeId, regionId) => {
-    await api.put(`/api/nodes/${nodeId}/region`, { brainRegionId: regionId || null });
+    await api.put(`/admin/nodes/${nodeId}/region`, { brainRegionId: regionId || null });
     refresh();
   };
 

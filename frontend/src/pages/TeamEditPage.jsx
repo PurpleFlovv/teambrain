@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTeamData } from '../hooks/useTeamData';
 import { useBrainData } from '../hooks/useBrainData';
 import MiniBrain from '../components/MiniBrain';
@@ -226,9 +226,10 @@ const DeleteRegionModal = ({ region, targetRegions, regionNodes, onConfirm, onCa
 
 // ---- Main Page ----
 const TeamEditPage = () => {
-  const { id } = useParams();
-  const teamId = parseInt(id);
   const navigate = useNavigate();
+  const location = useLocation();
+  const match = location.pathname.match(/\/teams\/(\d+)\/edit/) || location.pathname.match(/\/admin\/teams\/(\d+)\/edit/);
+  const teamId = match ? parseInt(match[1]) : null;
   const [tab, setTab] = useState('info');
 
   const { team, nodes, refresh } = useTeamData(teamId);
@@ -281,7 +282,7 @@ const TeamEditPage = () => {
 
   // ---- Node Operations ----
   const handleDrop = async (nodeId, regionId) => {
-    await api.put(`/api/nodes/${nodeId}/region`, { brainRegionId: regionId || null });
+    await api.put(`/admin/nodes/${nodeId}/region`, { brainRegionId: regionId || null });
     refresh();
   };
 
@@ -553,7 +554,7 @@ const TeamEditPage = () => {
 
               {showMiniBrain ? (
                 <div className="flex justify-center mt-4">
-                  <MiniBrain brainPoints={brainPoints} regions={teamRegions} width={400} height={400} />
+                  <MiniBrain brainPoints={brainPoints} regions={teamRegions} onNodeDrop={handleDrop} width={400} height={400} />
                 </div>
               ) : (
                 <div className="space-y-3">

@@ -27,6 +27,9 @@ public class TeamNode {
     @Column(nullable = false, length = 10)
     private NodeType nodeType;
 
+    @Column(length = 200)
+    private String tags;  // comma-separated: "leader", "bridge:3,4"
+
     public enum NodeType { MEMBER, PROJECT }
 
     public TeamNode() {}
@@ -51,4 +54,6 @@ public class TeamNode {
     public void setDescription(String description) { this.description = description; }
     public NodeType getNodeType() { return nodeType; }
     public void setNodeType(NodeType nodeType) { this.nodeType = nodeType; }
+    public String getTags() { return tags; }
+    public void setTags(String tags) { this.tags = tags; }
 }

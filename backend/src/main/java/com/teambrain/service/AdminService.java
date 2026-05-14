@@ -83,7 +83,8 @@ public class AdminService {
         }
         user.setRoles(roleSet);
         user = userRepository.save(user);
-        teamRepository.save(new Team(user.getUsername() + "的团队", "团队大脑", user));
+        Team team = teamRepository.save(new Team(user.getUsername() + "的团队", "团队大脑", user));
+        brainRegionService.copyTemplatesForTeam(team.getId());
         log(adminUsername, "CREATE_USER", username);
         return user;
     }

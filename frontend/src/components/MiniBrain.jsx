@@ -2,8 +2,12 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-const MiniBrain = ({ brainPoints, regions, width = 400, height = 400 }) => {
+const MiniBrain = ({ brainPoints, regions, onNodeDrop, width = 400, height = 400 }) => {
   const mountRef = useRef(null);
+  const spheresRef = useRef([]);
+  const cameraRef = useRef(null);
+  const rendererRef = useRef(null);
+  const raycasterRef = useRef(new THREE.Raycaster());
 
   useEffect(() => {
     if (!brainPoints?.length || !mountRef.current) return;
@@ -12,7 +16,9 @@ const MiniBrain = ({ brainPoints, regions, width = 400, height = 400 }) => {
     scene.background = new THREE.Color(0x000011);
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100);
     camera.position.set(0, 0, 3);
+    cameraRef.current = camera;
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    rendererRef.current = renderer;
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     mountRef.current.appendChild(renderer.domElement);
@@ -40,6 +46,7 @@ const MiniBrain = ({ brainPoints, regions, width = 400, height = 400 }) => {
       pointsByRegion[p.regionId].points.push(p);
     });
 
+    const allSpheres = [];
     Object.values(pointsByRegion).forEach(region => {
       const r = parseInt(region.color.slice(1, 3), 16);
       const g = parseInt(region.color.slice(3, 5), 16);
@@ -55,9 +62,13 @@ const MiniBrain = ({ brainPoints, regions, width = 400, height = 400 }) => {
         const y = p.z;
         const z = p.y;
         sphere.position.set(x, y, z);
+        sphere.userData.regionId = p.regionId;
         scene.add(sphere);
+        allSpheres.push(sphere);
       });
     });
+
+    spheresRef.current = allSpheres;
 
     let frameId;
     const animate = () => {
@@ -75,7 +86,41 @@ const MiniBrain = ({ brainPoints, regions, width = 400, height = 400 }) => {
     };
   }, [brainPoints, width, height]);
 
-  return <div ref={mountRef} style={{ width, height, borderRadius: 12, overflow: 'hidden' }} />;
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const nodeId = parseInt(e.dataTransfer.getData('nodeId'));
+    if (!nodeId || !spheresRef.current.length) return;
+
+    const renderer = rendererRef.current;
+    const camera = cameraRef.current;
+    if (!renderer || !camera) return;
+
+    const rect = renderer.domElement.getBoundingClientRect();
+    const mouse = new THREE.Vector2(
+      ((e.clientX - rect.left) / rect.width) * 2 - 1,
+      -((e.clientY - rect.top) / rect.height) * 2 + 1
+    );
+    raycasterRef.current.setFromCamera(mouse, camera);
+    const intersects = raycasterRef.current.intersectObjects(spheresRef.current);
+    if (intersects.length > 0) {
+      const regionId = intersects[0].object.userData.regionId;
+      if (onNodeDrop) onNodeDrop(nodeId, regionId);
+    }
+  };
+
+  return (
+    <div
+      ref={mountRef}
+      style={{ width, height, borderRadius: 12, overflow: 'hidden' }}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    />
+  );
 };
 
 export default MiniBrain;

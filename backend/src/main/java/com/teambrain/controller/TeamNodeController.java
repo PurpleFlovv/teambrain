@@ -28,7 +28,8 @@ public class TeamNodeController {
         String name = (String) body.get("name");
         String description = (String) body.get("description");
         String nodeType = (String) body.get("nodeType");
-        Long brainRegionId = ((Number) body.get("brainRegionId")).longValue();
+        Long brainRegionId = body.get("brainRegionId") != null ?
+                ((Number) body.get("brainRegionId")).longValue() : null;
         return ResponseEntity.ok(nodeService.addNode(teamId, name, description, nodeType, brainRegionId));
     }
 

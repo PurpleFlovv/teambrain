@@ -1,6 +1,6 @@
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import Modal from 'react-modal';
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
 import api from '../services/api';
 // 设置 Modal 的 app element
@@ -80,24 +80,31 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   }, [nodes, regions]);
 
   // 定义连接规则（从 connRules prop 转换）
-  const connectionRules = (connRules || []).map(c => ({
+  // 定义连接规则（从 connRules prop 转换，兼容策略服务和手动连接两种格式）
+  const connectionRules = useMemo(() => (connRules || []).map(c => ({
     from: [c.fromNodeName],
-    to: c.targetType === 'ALL' ? '*' : [c.toNodeName],
+    to: c.toNodeName && c.toNodeName !== '*' ? [c.toNodeName] : '*',
     type: c.connectionType,
-    color: parseInt(c.colorHex.replace('#', ''), 16),
-    width: c.lineWidth,
-    flowColor: parseInt(c.flowColorHex.replace('#', ''), 16),
-    opacity: c.opacity,
-  }));
+    color: c.colorHex ? parseInt(c.colorHex.replace('#', ''), 16) : 0xffffff,
+    width: c.lineWidth || 0.02,
+    flowColor: c.flowColorHex ? parseInt(c.flowColorHex.replace('#', ''), 16) : 0xffffff,
+    opacity: c.opacity || 0.5,
+  })), [connRules]);
 
-  // 连接类型图例
-  const connectionLegend = [
-    { type: "management", name: "管理连接", color: "#ffaa44" },
-    { type: "creative", name: "创意产出", color: "#44aaff" },
-    { type: "production", name: "制作支持", color: "#aa44ff" },
-    { type: "business", name: "商业连接", color: "#44ffaa" },
-    { type: "culture", name: "文化渗透", color: "#ff8844" }
-  ];
+  // 连接类型图例（从策略服务数据动态生成）
+  const connectionLegend = useMemo(() => {
+    const seen = new Set();
+    return (connRules || []).filter(c => {
+      const key = c.connectionType;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).map(c => ({
+      type: c.connectionType,
+      name: c.connectionType || c.strategy || '连接',
+      color: c.colorHex || '#ffffff',
+    }));
+  }, [connRules]);
 
   // 创建代表节点
   const createRepresentativeNodes = (pointMeshes) => {
@@ -247,7 +254,42 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     finalConnections.forEach(connection => {
       const { startPoint, endPoint, rule } = connection;
       const { type, color, width, flowColor, opacity = 0.8 } = rule;
-      
+
+      // LOD: distance-based rendering - skip very far connections, simplify medium distance
+      const lodMidPoint = new THREE.Vector3(
+        (startPoint.position.x + endPoint.position.x) / 2,
+        (startPoint.position.y + endPoint.position.y) / 2,
+        (startPoint.position.z + endPoint.position.z) / 2
+      );
+      const dist = cameraRef.current ? cameraRef.current.position.distanceTo(lodMidPoint) : 0;
+
+      if (dist > 30) return; // Skip very far connections
+
+      if (dist > 15) {
+        // Simple line for medium distance (no TubeGeometry, no particles)
+        const lineGeo = new THREE.BufferGeometry().setFromPoints([
+          startPoint.position, endPoint.position
+        ]);
+        const colorHex = typeof color === 'number' ? color : parseInt(String(color), 10);
+        const lineMat = new THREE.LineBasicMaterial({
+          color: colorHex,
+          transparent: true,
+          opacity: (opacity || 0.5) * 0.3,
+        });
+        const simpleLine = new THREE.Line(lineGeo, lineMat);
+        simpleLine.userData = {
+          from: startPoint.userData.infoKey,
+          to: endPoint.userData.infoKey,
+          type,
+          startPoint: startPoint,
+          endPoint: endPoint,
+          originalOpacity: (opacity || 0.5) * 0.3
+        };
+        sceneRef.current?.add(simpleLine);
+        connectionLinesRef.current.push(simpleLine);
+        return; // Don't create flow particles for LOD lines
+      }
+
       // 创建曲线
       const points = [
         new THREE.Vector3(startPoint.position.x, startPoint.position.y, startPoint.position.z),
@@ -548,7 +590,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       // 更新光点的用户数据
       mesh.userData.infoName = randomInfo.name;
       mesh.userData.infoDescription = randomInfo.description;
-      mesh.userData.infoKey = randomInfo.name;
+      mesh.userData.infoKey = randomInfo.name || `unassigned_${mesh.uuid.substring(0, 8)}`;
     });
   };
 
@@ -845,7 +887,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
             partitionColor: pointColor,
             infoName: randomNode.name,
             infoDescription: randomNode.description || '',
-            infoKey: randomNode.name // 确保每个光点都有infoKey属性
+            infoKey: randomNode.name || `unassigned_${pointIndex}`
           };
 
           // 更新统计信息

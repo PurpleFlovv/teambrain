@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     const { data } = await api.post('/auth/login', { username, password });
     localStorage.setItem('token', data.token);
-    const userData = { id: data.userId, username: data.username, teamId: data.teamId };
+    const userData = { id: data.userId, username: data.username, teamId: data.teamId, roles: data.roles || [] };
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     return userData;
@@ -28,7 +28,7 @@ export function AuthProvider({ children }) {
   const register = async (username, password, email) => {
     const { data } = await api.post('/auth/register', { username, password, email });
     localStorage.setItem('token', data.token);
-    const userData = { id: data.userId, username: data.username, teamId: data.teamId };
+    const userData = { id: data.userId, username: data.username, teamId: data.teamId, roles: data.roles || [] };
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     return userData;
