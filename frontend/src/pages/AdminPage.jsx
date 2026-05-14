@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, Building2, ScrollText, FileText } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, ScrollText, FileText, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBrainData } from '../hooks/useBrainData';
 import { useTeamData } from '../hooks/useTeamData';
@@ -379,7 +379,10 @@ const TeamDetail = () => {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center space-x-2 p-4 border-b border-white border-opacity-10">
-        <button onClick={() => navigate('/admin/teams')} className="text-blue-400 text-sm hover:underline">← 团队列表</button>
+        <button onClick={() => navigate('/admin/teams')} className="text-blue-400 text-sm hover:underline flex items-center space-x-1">
+          <ArrowLeft className="w-4 h-4" />
+          <span>团队列表</span>
+        </button>
         <span className="text-white opacity-40">/</span>
         <span className="text-white text-sm">{team?.teamName}</span>
       </div>

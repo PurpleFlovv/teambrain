@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Pencil, Trash2, ArrowLeft } from 'lucide-react';
 
 const TABS = [
   { key: 'info', label: '编辑信息' },
@@ -225,7 +226,10 @@ const MyTeamDetail = () => {
     <div className="h-full flex flex-col">
       {/* Breadcrumb */}
       <div className="p-3 border-b border-white border-opacity-10 flex items-center space-x-2 text-sm">
-        <button onClick={() => navigate('/my-teams')} className="text-blue-400 hover:underline">← 我的团队</button>
+        <button onClick={() => navigate('/my-teams')} className="text-blue-400 hover:underline flex items-center space-x-1">
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>我的团队</span>
+                    </button>
         <span className="text-white opacity-40">/</span>
         <span className="text-white">{team?.teamName}</span>
       </div>
@@ -293,12 +297,12 @@ const MyTeamDetail = () => {
                       <button onClick={(e) => { e.stopPropagation(); openEditNode(node); }}
                         className="text-blue-400 hover:text-blue-300 text-xs px-1.5 py-0.5 rounded hover:bg-white hover:bg-opacity-10"
                         title="编辑">
-                        ✏️
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
                       <button onClick={(e) => { e.stopPropagation(); handleDeleteNode(node); }}
                         className="text-red-400 hover:text-red-300 text-xs px-1.5 py-0.5 rounded hover:bg-white hover:bg-opacity-10"
                         title="删除">
-                        ✕
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -365,12 +369,12 @@ const MyTeamDetail = () => {
                           <button onClick={() => openEditRegion(region)}
                             className="text-blue-400 hover:text-blue-300 text-xs"
                             title="编辑脑区">
-                            ✏️
+                            <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button onClick={() => openDeleteRegion(region)}
                             className="text-red-400 hover:text-red-300 text-xs"
                             title="删除脑区">
-                            🗑
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </div>
