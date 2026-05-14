@@ -11,8 +11,8 @@ const Index = () => {
 
   if (brainLoading || teamLoading) {
     return (
-      <div className="flex items-center justify-center w-full h-full bg-black">
-        <div className="text-white text-xl">加载中...</div>
+      <div className="flex items-center justify-center w-full h-full bg-[var(--bg-deep-space)]">
+        <div className="text-[var(--text-muted)] text-lg animate-pulse">加载中...</div>
       </div>
     );
   }
