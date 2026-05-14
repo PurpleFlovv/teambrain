@@ -9,7 +9,7 @@ const MyTeams = () => {
   const [teams, setTeams] = useState([]);
 
   useEffect(() => {
-    api.get('/admin/teams').then(r => {
+    api.get('/teams/public').then(r => {
       // Show teams owned by current user (simplified: all teams for now)
       setTeams(r.data);
     }).catch(() => {});

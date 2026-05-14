@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
 const TeamSquare = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [joinedIds, setJoinedIds] = useState(new Set());
 
   useEffect(() => {
-    api.get('/admin/teams').then(r => setTeams(r.data)).catch(() => {});
+    api.get('/teams/public').then(r => setTeams(r.data)).catch(() => {});
   }, []);
 
   const openDetail = (team) => {
@@ -16,6 +19,16 @@ const TeamSquare = () => {
     api.get(`/teams/${team.id}/regions`).then(r => {
       setSelected({ ...team, regions: r.data });
     }).catch(() => {});
+  };
+
+  const handleJoin = async (team) => {
+    try {
+      await api.post(`/teams/${team.id}/join`);
+      setJoinedIds(prev => new Set([...prev, team.id]));
+      setSelected(null);
+    } catch (err) {
+      console.error('Join failed:', err);
+    }
   };
 
   return (
@@ -28,10 +41,14 @@ const TeamSquare = () => {
             <p className="text-white text-opacity-60 text-sm mb-4 line-clamp-2">{t.description || '暂无描述'}</p>
             <div className="flex items-center justify-between">
               <span className="text-white text-opacity-40 text-xs">{t.ownerUsername}</span>
-              <button onClick={() => openDetail(t)}
-                className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 px-3 py-1 rounded text-white text-xs">
-                加入
-              </button>
+              {t.id !== user?.teamId && !joinedIds.has(t.id) ? (
+                <button onClick={() => openDetail(t)}
+                  className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 px-3 py-1 rounded text-white text-xs">
+                  加入
+                </button>
+              ) : (
+                <span className="text-green-400 text-xs">已加入</span>
+              )}
             </div>
           </div>
         ))}
@@ -56,10 +73,7 @@ const TeamSquare = () => {
             )}
             <div className="flex justify-end space-x-3">
               <button onClick={() => setSelected(null)} className="px-4 py-2 rounded text-white text-sm bg-gray-500 bg-opacity-50">取消</button>
-              <button onClick={async () => {
-                await api.post(`/teams/${selected.id}/join`);
-                setSelected(null);
-              }} className="px-4 py-2 rounded text-white text-sm bg-blue-500 bg-opacity-50">确认加入</button>
+              <button onClick={() => handleJoin(selected)} className="px-4 py-2 rounded text-white text-sm bg-blue-500 bg-opacity-50">确认加入</button>
             </div>
           </div>
         </div>

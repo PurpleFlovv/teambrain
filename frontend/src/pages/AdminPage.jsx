@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, useParams } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useBrainData } from '../hooks/useBrainData';
 import { useTeamData } from '../hooks/useTeamData';
@@ -55,7 +55,7 @@ const Dashboard = () => {
         </select>
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: '成员', value: nodes.filter(n => n.nodeType === 'MEMBER').length, color: '#44aaff' },
           { label: '项目', value: nodes.filter(n => n.nodeType === 'PROJECT').length, color: '#aa44ff' },
@@ -72,8 +72,8 @@ const Dashboard = () => {
       <div className="grid grid-cols-2 gap-4" style={{ maxHeight: 'min(50vh, 420px)' }}>
         <div className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 flex flex-col">
           <h3 className="text-white text-sm font-bold mb-3">3D 脑区预览</h3>
-          <div className="flex-1">
-            <MiniBrain brainPoints={brainPoints} regions={regions} width={400} height={400} />
+          <div className="flex-1 flex items-center justify-center">
+            <MiniBrain brainPoints={brainPoints} regions={regions} width={360} height={Math.min(window.innerHeight * 0.4, 360)} />
           </div>
         </div>
         <div className="bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 flex flex-col">
@@ -385,9 +385,10 @@ const TeamList = () => {
 
 // ---- Team Detail ----
 const TeamDetail = () => {
-  const { id } = useParams();
   const navigate = useNavigate();
-  const teamId = parseInt(id);
+  const location = useLocation();
+  const match = location.pathname.match(/\/admin\/teams\/(\d+)/);
+  const teamId = match ? parseInt(match[1]) : null;
   const { regions, points: brainPoints, loading: brainLoading } = useBrainData();
   const { team, nodes, loading: teamLoading } = useTeamData(teamId);
   const [strategyConns, setStrategyConns] = useState([]);
@@ -398,7 +399,7 @@ const TeamDetail = () => {
   }, [teamId]);
 
   if (brainLoading || teamLoading) {
-    return <div className="flex items-center justify-center h-full text-white">加载中...</div>;
+    return <div className="flex items-center justify-center h-full text-white text-opacity-60">加载团队数据中...</div>;
   }
 
   return (

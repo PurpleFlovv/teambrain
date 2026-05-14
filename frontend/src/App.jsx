@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import Index from "./pages/Index";
 import MyTeams from "./pages/MyTeams";
+import MyTeamDetail from "./pages/MyTeamDetail";
 import TeamSquare from "./pages/TeamSquare";
 import JoinTeam from "./pages/JoinTeam";
 import Profile from "./pages/Profile";
@@ -33,12 +34,6 @@ const ProtectedLayout = ({ children }) => (
     </div>
   </ProtectedRoute>
 );
-
-// Placeholder for routes that don't have full pages yet
-const Placeholder = ({ title }) => (
-  <div className="flex items-center justify-center h-full text-white text-opacity-60"><p>{title}</p></div>
-);
-const MyTeamDetail = () => <Placeholder title="团队详情" />;
 
 const AppRoutes = () => (
   <HashRouter>

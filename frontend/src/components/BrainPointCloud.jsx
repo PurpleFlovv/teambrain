@@ -1231,7 +1231,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   }, [highlightedNodeRef.current, showConnections]);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden">
+    <div className="relative w-full h-full overflow-hidden">
       <div ref={mountRef} className="absolute inset-0" />
       {/* 保存时加载叠加层 */}
       {isSaving && (

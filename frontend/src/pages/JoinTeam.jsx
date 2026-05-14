@@ -1,14 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
 const JoinTeam = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
+  const [joinedIds, setJoinedIds] = useState(new Set());
 
   useEffect(() => {
-    api.get('/admin/teams').then(r => setTeams(r.data)).catch(() => {});
+    api.get('/teams/public').then(r => setTeams(r.data)).catch(() => {});
   }, []);
+
+  const handleJoin = async (t) => {
+    try {
+      await api.post(`/teams/${t.id}/join`);
+      setJoinedIds(prev => new Set([...prev, t.id]));
+      navigate('/');
+    } catch (err) {
+      console.error('Join failed:', err);
+    }
+  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -24,12 +37,13 @@ const JoinTeam = () => {
                 <span>👥 {t.memberCount || 0}</span>
                 <span>📦 {t.projectCount || 0}</span>
               </div>
-              <button onClick={async () => {
-                await api.post(`/teams/${t.id}/join`);
-                navigate('/');
-              }} className="bg-green-500 bg-opacity-50 hover:bg-opacity-70 px-4 py-1.5 rounded text-white text-sm">
-                加入团队
-              </button>
+              {t.id !== user?.teamId && !joinedIds.has(t.id) ? (
+                <button onClick={() => handleJoin(t)} className="bg-green-500 bg-opacity-50 hover:bg-opacity-70 px-4 py-1.5 rounded text-white text-sm">
+                  加入团队
+                </button>
+              ) : (
+                <span className="text-green-400 text-xs">已加入</span>
+              )}
             </div>
           </div>
         ))}

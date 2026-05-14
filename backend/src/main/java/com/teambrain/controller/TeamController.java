@@ -1,12 +1,14 @@
 package com.teambrain.controller;
 
 import com.teambrain.dto.TeamDto;
+import com.teambrain.service.AdminService;
 import com.teambrain.service.TeamService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -14,9 +16,16 @@ import java.util.Map;
 public class TeamController {
 
     private final TeamService teamService;
+    private final AdminService adminService;
 
-    public TeamController(TeamService teamService) {
+    public TeamController(TeamService teamService, AdminService adminService) {
         this.teamService = teamService;
+        this.adminService = adminService;
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<List<Map<String, Object>>> getPublicTeams() {
+        return ResponseEntity.ok(adminService.getAllTeams());
     }
 
     @GetMapping("/{id}")
