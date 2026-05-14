@@ -6,6 +6,8 @@ import { useBrainData } from '../hooks/useBrainData';
 import { useTeamData } from '../hooks/useTeamData';
 import MiniBrain from '../components/MiniBrain';
 import BrainPointCloud from '../components/BrainPointCloud';
+import GlassModal from '../components/shared/GlassModal';
+import { Button } from '@/components/ui/button';
 import TeamEditPage from './TeamEditPage';
 import api from '../services/api';
 
@@ -179,6 +181,7 @@ const UserList = () => {
   const [search, setSearch] = useState('');
   const [teamFilter, setTeamFilter] = useState('');
   const [modal, setModal] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
   const load = () => api.get('/admin/users').then(r => setUsers(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
 
@@ -199,10 +202,14 @@ const UserList = () => {
     load();
   };
 
-  const handleDelete = async (u) => {
-    if (!window.confirm(`确定删除用户 ${u.username}？此操作不可撤销。`)) return;
-    await api.delete(`/admin/users/${u.id}`);
-    load();
+  const handleDelete = (u) => {
+    setConfirmAction({
+      message: `确定删除用户 ${u.username}？此操作不可撤销。`,
+      onConfirm: async () => {
+        await api.delete(`/admin/users/${u.id}`);
+        load();
+      },
+    });
   };
 
   return (
@@ -258,12 +265,19 @@ const UserList = () => {
         </table>
       </div>
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg p-6 w-96">
-            <h3 className="text-white text-lg font-bold mb-4">{modal === 'create' ? '新建用户' : '编辑用户'}</h3>
-            <UserForm initial={modal === 'create' ? null : modal} onSave={handleSave} onCancel={() => setModal(null)} />
+        <GlassModal open={true} onOpenChange={() => setModal(null)} title={modal === 'create' ? '新建用户' : '编辑用户'}>
+          <UserForm initial={modal === 'create' ? null : modal} onSave={handleSave} onCancel={() => setModal(null)} />
+        </GlassModal>
+      )}
+
+      {confirmAction && (
+        <GlassModal open={true} onOpenChange={() => setConfirmAction(null)} title="确认操作">
+          <p className="text-[var(--text-primary)] mb-6">{confirmAction.message}</p>
+          <div className="flex justify-end space-x-3">
+            <Button variant="secondary" onClick={() => setConfirmAction(null)}>取消</Button>
+            <Button variant="destructive" onClick={async () => { await confirmAction.onConfirm(); setConfirmAction(null); }}>确认</Button>
           </div>
-        </div>
+        </GlassModal>
       )}
     </div>
   );
@@ -277,6 +291,7 @@ const TeamList = () => {
   const [createModal, setCreateModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamDesc, setNewTeamDesc] = useState('');
+  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => { api.get('/admin/teams').then(r => setTeams(r.data)).catch(() => {}); }, []);
 
@@ -285,10 +300,14 @@ const TeamList = () => {
     t.ownerUsername.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleDelete = async (t) => {
-    if (!window.confirm(`确定删除团队 ${t.teamName}？节点和连接将一并删除。`)) return;
-    await api.delete(`/admin/teams/${t.id}`);
-    setTeams(prev => prev.filter(x => x.id !== t.id));
+  const handleDelete = (t) => {
+    setConfirmAction({
+      message: `确定删除团队 ${t.teamName}？节点和连接将一并删除。`,
+      onConfirm: async () => {
+        await api.delete(`/admin/teams/${t.id}`);
+        setTeams(prev => prev.filter(x => x.id !== t.id));
+      },
+    });
   };
 
   const handleEditClick = (t) => {
@@ -327,31 +346,38 @@ const TeamList = () => {
         </table>
       </div>
       {createModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg p-6 w-96">
-            <h3 className="text-white text-lg font-bold mb-4">新建团队</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-white text-sm mb-1">团队名称</label>
-                <input type="text" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="团队名称"
-                  className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
-              </div>
-              <div>
-                <label className="block text-white text-sm mb-1">团队描述</label>
-                <input type="text" value={newTeamDesc} onChange={e => setNewTeamDesc(e.target.value)} placeholder="团队描述"
-                  className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
-              </div>
-              <div className="flex justify-end space-x-3 pt-2">
-                <button onClick={() => setCreateModal(false)} className="px-4 py-2 rounded text-sm bg-gray-500 bg-opacity-50 text-white">取消</button>
-                <button onClick={async () => {
-                  await api.post('/admin/teams', { teamName: newTeamName, description: newTeamDesc });
-                  setCreateModal(false);
-                  api.get('/admin/teams').then(r => setTeams(r.data));
-                }} className="px-4 py-2 rounded text-sm bg-blue-500 bg-opacity-50 text-white">保存</button>
-              </div>
+        <GlassModal open={true} onOpenChange={() => setCreateModal(false)} title="新建团队">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-white text-sm mb-1">团队名称</label>
+              <input type="text" value={newTeamName} onChange={e => setNewTeamName(e.target.value)} placeholder="团队名称"
+                className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
+            </div>
+            <div>
+              <label className="block text-white text-sm mb-1">团队描述</label>
+              <input type="text" value={newTeamDesc} onChange={e => setNewTeamDesc(e.target.value)} placeholder="团队描述"
+                className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
+            </div>
+            <div className="flex justify-end space-x-3 pt-2">
+              <Button variant="secondary" onClick={() => setCreateModal(false)}>取消</Button>
+              <Button onClick={async () => {
+                await api.post('/admin/teams', { teamName: newTeamName, description: newTeamDesc });
+                setCreateModal(false);
+                api.get('/admin/teams').then(r => setTeams(r.data));
+              }}>保存</Button>
             </div>
           </div>
-        </div>
+        </GlassModal>
+      )}
+
+      {confirmAction && (
+        <GlassModal open={true} onOpenChange={() => setConfirmAction(null)} title="确认操作">
+          <p className="text-[var(--text-primary)] mb-6">{confirmAction.message}</p>
+          <div className="flex justify-end space-x-3">
+            <Button variant="secondary" onClick={() => setConfirmAction(null)}>取消</Button>
+            <Button variant="destructive" onClick={async () => { await confirmAction.onConfirm(); setConfirmAction(null); }}>确认</Button>
+          </div>
+        </GlassModal>
       )}
     </div>
   );

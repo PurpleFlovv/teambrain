@@ -7,6 +7,8 @@ import api from '../services/api';
 import NodeModal from '../components/shared/NodeModal';
 import RegionModal from '../components/shared/RegionModal';
 import DeleteRegionModal from '../components/shared/DeleteRegionModal';
+import GlassCard from '../components/shared/GlassCard';
+import GlassModal from '../components/shared/GlassModal';
 import FormField from '../components/shared/FormField';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -48,6 +50,9 @@ const MyTeamDetail = () => {
 
   // MiniBrain toggle
   const [showMiniBrain, setShowMiniBrain] = useState(false);
+
+  // Confirm dialog state
+  const [confirmAction, setConfirmAction] = useState(null);
 
   // Import state
   const [importStatus, setImportStatus] = useState(null);
@@ -109,13 +114,13 @@ const MyTeamDetail = () => {
   };
 
   const handleDeleteNode = async (node) => {
-    if (!window.confirm(`确定删除节点 "${node.name}"？`)) return;
-    try {
-      await api.delete(`/nodes/${node.id}`);
-      refresh();
-    } catch (err) {
-      toast.error('删除失败: ' + (err.response?.data?.message || err.message));
-    }
+    setConfirmAction({
+      message: `确定删除节点 "${node.name}"？`,
+      onConfirm: async () => {
+        await api.delete(`/nodes/${node.id}`);
+        refresh();
+      },
+    });
   };
 
   // ---- Region Operations ----
@@ -279,13 +284,14 @@ const MyTeamDetail = () => {
               </div>
               <div className="space-y-2">
                 {filteredNodes.map(node => (
-                  <div key={node.id} draggable
+                  <GlassCard key={node.id}
+                    draggable
                     onDragStart={e => {
                       e.dataTransfer.setData('nodeId', String(node.id));
                       e.currentTarget.style.opacity = '0.5';
                     }}
                     onDragEnd={e => { e.currentTarget.style.opacity = '1'; }}
-                    className="flex items-center space-x-2 bg-black bg-opacity-20 border border-white border-opacity-10 rounded p-3 min-h-[48px] cursor-grab hover:border-white hover:border-opacity-30 transition-colors group">
+                    className="flex items-center space-x-2 p-3 min-h-[48px] cursor-grab hover:border-white hover:border-opacity-30 transition-colors group">
                     <span className="text-white text-opacity-40 cursor-grab select-none shrink-0">⋮⋮</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-white text-sm font-bold truncate">{node.name}</div>
@@ -305,7 +311,7 @@ const MyTeamDetail = () => {
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                  </div>
+                  </GlassCard>
                 ))}
                 {filteredNodes.length === 0 && (
                   <div className="text-center text-white text-opacity-40 text-sm py-8">
@@ -342,7 +348,7 @@ const MyTeamDetail = () => {
               ) : (
                 <div className="space-y-3">
                   {teamRegions.map(region => (
-                    <div key={region.id}
+                    <GlassCard key={region.id}
                       onDragOver={e => {
                         e.preventDefault();
                         e.currentTarget.style.borderColor = region.colorHex;
@@ -358,7 +364,7 @@ const MyTeamDetail = () => {
                         e.currentTarget.style.borderColor = '';
                         e.currentTarget.style.borderWidth = '';
                       }}
-                      className="bg-black bg-opacity-20 border border-white border-opacity-10 rounded-lg p-4 transition-all group">
+                      className="p-4 transition-all group">
                       <div className="flex items-center space-x-3">
                         <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: region.colorHex }} />
                         <span className="text-white text-sm flex-1">{region.name}</span>
@@ -378,7 +384,7 @@ const MyTeamDetail = () => {
                           </button>
                         </div>
                       </div>
-                    </div>
+                    </GlassCard>
                   ))}
                   {teamRegions.length === 0 && (
                     <div className="text-center text-white text-opacity-40 text-sm py-8">
@@ -462,6 +468,16 @@ const MyTeamDetail = () => {
           onConfirm={handleDeleteRegion}
           onCancel={() => setDeleteRegionModal(null)}
         />
+      )}
+
+      {confirmAction && (
+        <GlassModal open={true} onOpenChange={() => setConfirmAction(null)} title="确认操作">
+          <p className="text-[var(--text-primary)] mb-6">{confirmAction.message}</p>
+          <div className="flex justify-end space-x-3">
+            <Button variant="secondary" onClick={() => setConfirmAction(null)}>取消</Button>
+            <Button variant="destructive" onClick={async () => { await confirmAction.onConfirm(); setConfirmAction(null); }}>确认</Button>
+          </div>
+        </GlassModal>
       )}
     </div>
   );

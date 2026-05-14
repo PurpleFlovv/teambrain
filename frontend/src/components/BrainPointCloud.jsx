@@ -1,10 +1,6 @@
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import Modal from 'react-modal';
 import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import * as THREE from 'three';
-import api from '../services/api';
-// 设置 Modal 的 app element
-Modal.setAppElement('#root');
 
 const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefresh }) => {
   const mountRef = useRef(null);
@@ -25,44 +21,14 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const [showConnections, setShowConnections] = useState(true);
   const showConnectionsRef = useRef(true);
   const activeFlowParticlesRef = useRef([]);
-  
-  // 添加团队信息编辑相关的状态
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('manual');
-  const [editingBrainRegionInfo, setEditingBrainRegionInfo] = useState({});
-  const [isUpdatingScene, setIsUpdatingScene] = useState(false);
-  const [pointMeshes, setPointMeshes] = useState([]);
-  const fileInputRef = useRef(null);
   const mouseDownPos = useRef({ x: 0, y: 0 });
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
   // 添加UI准备状态
   const [uiReady, setUiReady] = useState(false);
-  // 团队名称状态（从props初始化）
-  const [teamName, setTeamName] = useState(team?.teamName || 'TeamBrain');
-  const [editingTeamName, setEditingTeamName] = useState(team?.teamName || 'TeamBrain');
 
-  // Sync teamName when team prop changes
-  useEffect(() => {
-    if (team?.teamName) {
-      setTeamName(team.teamName);
-      setEditingTeamName(team.teamName);
-    }
-  }, [team?.teamName]);
-
-  // 添加 isModalOpenRef 来存储最新值
-  const isModalOpenRef = useRef(isModalOpen);
-
-  // 更新 isModalOpenRef 的值
-  useEffect(() => {
-    isModalOpenRef.current = isModalOpen;
-  }, [isModalOpen]);
-
-  // 脑区信息数据 - 从 nodes prop 构建
-  const [brainRegionInfo, setBrainRegionInfo] = useState({});
-
-  // Build brainRegionInfo from nodes (grouped by brainRegionId)
-  useEffect(() => {
+  // 脑区信息数据 - 从 nodes prop 和 regions prop 构建
+  const brainRegionInfo = useMemo(() => {
     const info = {};
     // Initialize all brain regions with empty arrays
     if (regions) {
@@ -76,7 +42,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         info[rid].push({ id: node.id, name: node.name, description: node.description || '' });
       });
     }
-    setBrainRegionInfo(info);
+    return info;
   }, [nodes, regions]);
 
   // 定义连接规则（从 connRules prop 转换）
@@ -506,294 +472,6 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     });
   };
 
-  // 清理场景中的所有对象
-  const clearScene = () => {
-    // 移除所有光点
-    pointMeshes.forEach(mesh => {
-      if (mesh.geometry) mesh.geometry.dispose();
-      if (mesh.material) {
-        if (Array.isArray(mesh.material)) {
-          mesh.material.forEach(material => material.dispose());
-        } else {
-          mesh.material.dispose();
-        }
-      }
-      sceneRef.current.remove(mesh);
-    });
-    
-    // 移除所有连接线
-    connectionLinesRef.current.forEach(line => {
-      if (line.geometry) line.geometry.dispose();
-      if (line.material) {
-        if (Array.isArray(line.material)) {
-          line.material.forEach(material => material.dispose());
-        } else {
-          line.material.dispose();
-        }
-      }
-      sceneRef.current.remove(line);
-    });
-    
-    // 移除所有流动粒子
-    flowParticlesRef.current.forEach(particle => {
-      if (particle.mesh) {
-        if (particle.mesh.geometry) particle.mesh.geometry.dispose();
-        if (particle.mesh.material) {
-          if (Array.isArray(particle.mesh.material)) {
-            particle.mesh.material.forEach(material => material.dispose());
-          } else {
-            particle.mesh.material.dispose();
-          }
-        }
-        sceneRef.current.remove(particle.mesh);
-      }
-      
-      if (particle.tailParticles) {
-        particle.tailParticles.forEach(tail => {
-          if (tail.geometry) tail.geometry.dispose();
-          if (tail.material) {
-            if (Array.isArray(tail.material)) {
-              tail.material.forEach(material => material.dispose());
-            } else {
-              tail.material.dispose();
-            }
-          }
-          sceneRef.current.remove(tail);
-        });
-      }
-    });
-    
-    // 清空引用数组
-    pointMeshes.length = 0;
-    connectionLinesRef.current = [];
-    flowParticlesRef.current = [];
-    activeFlowParticlesRef.current = [];
-  };
-
-  // 重新分配信息给光点
-  const reassignInfoToPoints = (pointMeshes, newBrainRegionInfo) => {
-    pointMeshes.forEach(mesh => {
-      const partitionIndex = mesh.userData.partitionIndex;
-      const regionInfo = newBrainRegionInfo[partitionIndex] || [];
-      
-      let randomInfo;
-      if (regionInfo.length > 0) {
-        randomInfo = regionInfo[Math.floor(Math.random() * regionInfo.length)];
-      } else {
-        // 如果脑区为空，分配默认信息
-        randomInfo = {
-          name: "未分配成员/项目",
-          description: "暂无信息"
-        };
-      }
-      
-      // 更新光点的用户数据
-      mesh.userData.infoName = randomInfo.name;
-      mesh.userData.infoDescription = randomInfo.description;
-      mesh.userData.infoKey = randomInfo.name || `unassigned_${mesh.uuid.substring(0, 8)}`;
-    });
-  };
-
-  // 重新生成整个场景
-  const regenerateScene = useCallback(async (newBrainRegionInfo) => {
-    setIsUpdatingScene(true);
-    
-    try {
-      // 清理旧场景
-      clearScene();
-      
-      // 重新分配信息给现有的光点位置
-      reassignInfoToPoints(pointMeshes, newBrainRegionInfo);
-      
-      // 重新生成代表节点
-      const newRepresentativeNodes = createRepresentativeNodes(pointMeshes);
-      
-      // 重新生成连接线
-      createDynamicConnections(pointMeshes);
-      if (!showConnectionsRef.current && !highlightedNodeRef.current) {
-        toggleConnectionsVisibility(false);
-      }
-
-      // 重置高亮状态
-      highlightedNodeRef.current = null;
-      setIsNodeListExpanded(false);
-      setConnectedNodes([]);
-      
-      console.log("场景更新完成");
-    } catch (error) {
-      console.error("场景更新失败:", error);
-    } finally {
-      setIsUpdatingScene(false);
-    }
-  }, []);
-
-  // 打开模态框时初始化编辑数据和未保存更改状态
-  const openModal = () => {
-    const info = JSON.parse(JSON.stringify(brainRegionInfo));
-    // 确保所有脑区都有编辑入口（即使该脑区暂无节点）
-    if (regions) {
-      regions.forEach(r => {
-        if (!info[r.id]) info[r.id] = [];
-      });
-    }
-    setEditingBrainRegionInfo(info);
-    setEditingTeamName(teamName);
-    setHasUnsavedChanges(false);
-    setIsModalOpen(true);
-  };
-
-  // 修改 closeModal 函数，移除二次确认逻辑，直接关闭模态框
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setActiveTab('manual');
-    setHasUnsavedChanges(false);
-  };
-
-  // 保存编辑的数据
-  const saveChanges = async () => {
-    const teamId = team?.id;
-    setIsModalOpen(false);
-    setActiveTab('manual');
-    setHasUnsavedChanges(false);
-
-    if (!teamId) return;
-
-    try {
-      // 更新团队名称
-      if (editingTeamName !== teamName) {
-        await api.put(`/teams/${teamId}`, { teamName: editingTeamName });
-      }
-
-      // 同步节点变更
-      const oldInfo = brainRegionInfo;
-      const newInfo = editingBrainRegionInfo;
-
-      for (const rid of Object.keys(newInfo)) {
-        const oldEntries = oldInfo[rid] || [];
-        const newEntries = newInfo[rid] || [];
-
-        // DELETE: entries removed by user
-        for (const oldEntry of oldEntries) {
-          if (oldEntry.id && !newEntries.find(e => e.id === oldEntry.id)) {
-            await api.delete(`/nodes/${oldEntry.id}`).catch(() => {});
-          }
-        }
-
-        // CREATE or UPDATE
-        for (const newEntry of newEntries) {
-          if (newEntry.id) {
-            const old = oldEntries.find(e => e.id === newEntry.id);
-            if (old && (old.name !== newEntry.name || old.description !== newEntry.description)) {
-              await api.put(`/nodes/${newEntry.id}`, {
-                name: newEntry.name,
-                description: newEntry.description,
-              }).catch(() => {});
-            }
-          } else {
-            await api.post(`/teams/${teamId}/nodes`, {
-              name: newEntry.name,
-              description: newEntry.description || '',
-              nodeType: 'MEMBER',
-              brainRegionId: parseInt(rid),
-            }).catch(() => {});
-          }
-        }
-      }
-
-      // 延迟刷新数据，显示加载指示器
-      if (onRefresh) {
-        setIsSaving(true);
-        setTimeout(async () => {
-          try { await onRefresh(); } catch (e) { console.error(e); }
-          setIsSaving(false);
-        }, 100);
-      }
-    } catch (err) {
-      console.error('保存失败:', err);
-    }
-  };
-
-  // 添加新的信息条目
-  const addNewEntry = (partitionIndex) => {
-    console.log('添加新条目前 isModalOpen 值:', isModalOpen);
-    
-    const newEntry = {
-      name: "新成员/项目",
-      description: "请添加描述"
-    };
-    
-    setEditingBrainRegionInfo(prev => {
-      const newPartition = [...(prev[partitionIndex] || []), newEntry];
-      return {
-        ...prev,
-        [partitionIndex]: newPartition
-      };
-    });
-    
-    // 标记有未保存的更改
-    setHasUnsavedChanges(true);
-    
-    console.log('添加新条目后 isModalOpen 值:', isModalOpen);
-  };
-
-  // 删除信息条目
-  const deleteEntry = (partitionIndex, entryIndex) => {
-    setEditingBrainRegionInfo(prev => {
-      const newPartition = [...(prev[partitionIndex] || [])];
-      newPartition.splice(entryIndex, 1);
-      return {
-        ...prev,
-        [partitionIndex]: newPartition
-      };
-    });
-    
-    // 标记有未保存的更改
-    setHasUnsavedChanges(true);
-  };
-
-  // 更新信息条目
-  const updateEntry = (partitionIndex, entryIndex, field, value) => {
-    setEditingBrainRegionInfo(prev => {
-      const newPartition = [...(prev[partitionIndex] || [])];
-      newPartition[entryIndex] = {
-        ...newPartition[entryIndex],
-        [field]: value
-      };
-      return {
-        ...prev,
-        [partitionIndex]: newPartition
-      };
-    });
-    
-    // 标记有未保存的更改
-    setHasUnsavedChanges(true);
-  };
-
-  // 处理文件上传
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const jsonData = JSON.parse(e.target.result);
-        setEditingBrainRegionInfo(jsonData);
-        // 标记有未保存的更改
-        setHasUnsavedChanges(true);
-        console.log("JSON文件导入成功:", jsonData);
-      } catch (error) {
-        console.error("JSON文件解析失败:", error);
-        alert("JSON文件格式错误，请检查后重试");
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  // 触发文件选择
-  const triggerFileSelect = () => {
-    fileInputRef.current.click();
-  };
 
   useEffect(() => {
     if (!mountRef.current || !brainPoints || brainPoints.length === 0) return;
@@ -929,8 +607,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         toggleConnectionsVisibility(false);
       }
 
-      // 保存光点网格引用
-      setPointMeshes(localPointMeshes);
+      // 保存光点网格引用（local variable, no state needed since no edit/regen)
+      // setPointMeshes removed - dead code
 
       // 大脑渲染完成后，设置UI准备状态
       setTimeout(() => {
@@ -1028,11 +706,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       // 移除了A/D键的水平移动控制
     };
 
-    // 鼠标交互处理 - 使用 isModalOpenRef.current 替代 isModalOpen
+    // 鼠标交互处理
     const handleMouseMove = (event) => {
-      // 如果模态框打开，禁用悬停检测
-      if (isModalOpenRef.current) return;
-      
       // 更新鼠标位置
       mouseRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouseRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -1192,9 +867,6 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     };
 
     const handleMouseUp = (event) => {
-      // 如果模态框打开，禁用
-      if (isModalOpenRef.current) return;
-
       // 拖拽距离超过阈值则不触发点击
       const dx = event.clientX - mouseDownPos.current.x;
       const dy = event.clientY - mouseDownPos.current.y;
@@ -1386,193 +1058,27 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         </div>
       </div>
       
-      {/* 团队信息编辑模态框 - 优化版本 */}
-      <Modal
-        isOpen={isModalOpen}
-        onRequestClose={closeModal}
-        contentLabel="编辑团队信息"
-        className="absolute inset-0 flex items-center justify-center p-4 z-50"
-        overlayClassName="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-40"
-      >
-        <div className="bg-black bg-opacity-70 backdrop-blur-md border border-white border-opacity-20 rounded-lg text-white w-full max-w-4xl max-h-[90vh] flex flex-col">
-          {/* 模态框标题栏 - 固定 */}
-          <div className="flex justify-between items-center p-6 border-b border-white border-opacity-20">
-            <h2 className="text-2xl font-bold">编辑团队信息</h2>
-            <button
-              onClick={closeModal}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-white bg-opacity-10 hover:bg-opacity-20 text-white text-xl"
-            >
-              ×
-            </button>
-          </div>
-          
-          {/* 选项卡栏 - 固定 */}
-          <div className="flex border-b border-white border-opacity-20 px-6">
-            <button
-              className={`px-4 py-3 ${activeTab === 'manual' ? 'border-b-2 border-white' : 'opacity-60'}`}
-              onClick={() => setActiveTab('manual')}
-            >
-              手动编辑
-            </button>
-            <button
-              className={`px-4 py-3 ${activeTab === 'import' ? 'border-b-2 border-white' : 'opacity-60'}`}
-              onClick={() => setActiveTab('import')}
-            >
-              导入 JSON
-            </button>
-          </div>
-          
-          {/* 内容区域 - 可滚动 */}
-          <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-            {/* 手动编辑选项卡 */}
-            {activeTab === 'manual' && (
-              <div className="space-y-4">
-                {/* 团队名称编辑 */}
-                <div className="border border-white border-opacity-20 rounded-lg p-4">
-                  <h3 className="text-lg font-bold mb-2">团队名称</h3>
-                  <div className="flex items-center space-x-2">
-                    <label className="text-sm">团队名称</label>
-                    <input
-                      type="text"
-                      value={editingTeamName}
-                      onChange={(e) => {
-                        setEditingTeamName(e.target.value);
-                        setHasUnsavedChanges(true);
-                      }}
-                      className="flex-1 bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-2 py-1 text-white"
-                      placeholder="输入团队名称"
-                    />
-                  </div>
-                </div>
-                
-                {Object.keys(editingBrainRegionInfo).map(partitionIndex => (
-                  <div key={partitionIndex} className="border border-white border-opacity-20 rounded-lg p-4">
-                    <h3 className="text-lg font-bold mb-2">
-                      脑区 {partitionIndex} ({regions?.find(r => r.id === parseInt(partitionIndex))?.name || `脑区 ${partitionIndex}`})
-                    </h3>
-                    <div className="space-y-2">
-                      {editingBrainRegionInfo[partitionIndex].map((entry, entryIndex) => (
-                        <div key={entryIndex} className="flex items-center space-x-2 bg-black bg-opacity-30 p-2 rounded">
-                          <input
-                            type="text"
-                            value={entry.name}
-                            onChange={(e) => updateEntry(partitionIndex, entryIndex, 'name', e.target.value)}
-                            className="flex-1 bg-transparent border border-white border-opacity-20 rounded px-2 py-1 text-white"
-                            placeholder="名称"
-                          />
-                          <input
-                            type="text"
-                            value={entry.description}
-                            onChange={(e) => updateEntry(partitionIndex, entryIndex, 'description', e.target.value)}
-                            className="flex-1 bg-transparent border border-white border-opacity-20 rounded px-2 py-1 text-white"
-                            placeholder="描述"
-                          />
-                          <button
-                            onClick={() => deleteEntry(partitionIndex, entryIndex)}
-                            className="bg-red-500 bg-opacity-50 hover:bg-opacity-70 px-2 py-1 rounded text-white"
-                          >
-                            删除
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => addNewEntry(partitionIndex)}
-                        className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 px-4 py-2 rounded text-white"
-                      >
-                        添加新条目
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {/* 导入 JSON 选项卡 */}
-            {activeTab === 'import' && (
-              <div className="space-y-4">
-                <div className="border-2 border-dashed border-white border-opacity-30 rounded-lg p-8 text-center">
-                  <p className="mb-4">上传 JSON 文件来替换当前团队信息</p>
-                  <button
-                    onClick={triggerFileSelect}
-                    className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 px-4 py-2 rounded text-white"
-                  >
-                    选择文件
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".json"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </div>
-                
-                <div className="bg-black bg-opacity-30 p-4 rounded">
-                  <h3 className="text-lg font-bold mb-2">JSON 文件格式示例</h3>
-                  <pre className="text-xs overflow-x-auto">
-{`{
-  "0": [{"name": "Tim（潘天鸿）", "description": "..."}, ...],
-  "1": [...],
-  "2": [...],
-  "3": [...],
-  "4": [...]
-}`}
-                  </pre>
-                </div>
-                
-                <div className="bg-black bg-opacity-30 p-4 rounded">
-                  <h3 className="text-lg font-bold mb-2">预览导入内容</h3>
-                  <pre className="text-xs overflow-x-auto max-h-60 overflow-y-auto scrollbar-hide">
-                    {JSON.stringify(editingBrainRegionInfo, null, 2)}
-                  </pre>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {/* 模态框底部按钮 - 固定 */}
-          <div className="flex justify-end space-x-4 p-6 border-t border-white border-opacity-20">
-            <button
-              onClick={closeModal}
-              className="bg-gray-500 bg-opacity-50 hover:bg-opacity-70 px-4 py-2 rounded text-white"
-            >
-              取消
-            </button>
-            <button
-              onClick={saveChanges}
-              disabled={isUpdatingScene}
-              className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 px-4 py-2 rounded text-white disabled:opacity-50"
-            >
-              {isUpdatingScene ? '正在更新场景...' : '更新'}
-            </button>
-          </div>
-        </div>
-      </Modal>
-      
-      {/* 添加自定义滚动条样式 */}
+      {/* 自定义滚动条样式 */}
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
           width: 4px;
           background-color: rgba(0, 0, 0, 0.5);
         }
-        
+
         .scrollbar-hide::-webkit-scrollbar-thumb {
           background-color: rgba(255, 255, 255, 0.3);
           border-radius: 2px;
         }
-        
+
         .scrollbar-hide::-webkit-scrollbar-thumb:hover {
           background-color: rgba(255, 255, 255, 0.6);
         }
-        
+
         .scrollbar-hide {
           scrollbar-width: thin;
           scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.5);
         }
       `}</style>
-      
-      {/* 修复完成后输出日志 */}
-      {console.log("关闭按钮修复完成")}
     </div>
   );
 };
