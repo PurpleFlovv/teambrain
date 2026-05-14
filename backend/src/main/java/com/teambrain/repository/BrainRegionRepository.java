@@ -6,4 +6,6 @@ import java.util.List;
 
 public interface BrainRegionRepository extends JpaRepository<BrainRegion, Long> {
     List<BrainRegion> findAllByOrderBySortOrderAsc();
+    List<BrainRegion> findByTeamIdOrderBySortOrderAsc(Long teamId);
+    List<BrainRegion> findByTeamIsNullOrderBySortOrderAsc();
 }

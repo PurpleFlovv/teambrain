@@ -3,6 +3,8 @@ package com.teambrain.controller;
 import com.teambrain.dto.TeamDto;
 import com.teambrain.service.TeamService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -25,5 +27,10 @@ public class TeamController {
     @PutMapping("/{id}")
     public ResponseEntity<TeamDto> updateTeam(@PathVariable Long id, @RequestBody Map<String, String> body) {
         return ResponseEntity.ok(teamService.updateTeam(id, body.get("teamName"), body.get("description")));
+    }
+
+    @PostMapping("/{id}/join")
+    public ResponseEntity<?> joinTeam(@PathVariable Long id, @AuthenticationPrincipal UserDetails ud) {
+        return ResponseEntity.ok(Map.of("message", "已加入"));
     }
 }

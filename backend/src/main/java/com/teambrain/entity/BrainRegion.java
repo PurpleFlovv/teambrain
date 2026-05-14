@@ -1,5 +1,6 @@
 package com.teambrain.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -17,6 +18,14 @@ public class BrainRegion {
 
     private Integer sortOrder;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "team_id")
+    @JsonIgnore
+    private Team team;
+
+    @Column(name = "template_region_id")
+    private Long templateRegionId;
+
     public BrainRegion() {}
 
     public BrainRegion(String name, String colorHex, Integer sortOrder) {
@@ -33,4 +42,8 @@ public class BrainRegion {
     public void setColorHex(String colorHex) { this.colorHex = colorHex; }
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
+    public Team getTeam() { return team; }
+    public void setTeam(Team team) { this.team = team; }
+    public Long getTemplateRegionId() { return templateRegionId; }
+    public void setTemplateRegionId(Long templateRegionId) { this.templateRegionId = templateRegionId; }
 }

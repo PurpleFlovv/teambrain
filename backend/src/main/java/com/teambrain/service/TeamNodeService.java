@@ -67,4 +67,15 @@ public class TeamNodeService {
     public void deleteNode(Long nodeId) {
         nodeRepository.deleteById(nodeId);
     }
+
+    public void moveNodeToRegion(Long nodeId, Long regionId) {
+        TeamNode node = nodeRepository.findById(nodeId).orElseThrow();
+        if (regionId != null) {
+            BrainRegion region = regionRepository.findById(regionId).orElseThrow();
+            node.setBrainRegion(region);
+        } else {
+            node.setBrainRegion(null);
+        }
+        nodeRepository.save(node);
+    }
 }
