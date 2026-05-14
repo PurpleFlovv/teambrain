@@ -10,7 +10,7 @@ const Index = () => {
   const [activeTeamId, setActiveTeamId] = useState(null);
   const [allTeams, setAllTeams] = useState([]);
   const { regions, points: brainPoints, loading: brainLoading } = useBrainData(activeTeamId);
-  const { team, nodes, connections: connRules, loading: teamLoading, refresh } = useTeamData(null, activeTeamId);
+  const { team, nodes, connections: connRules, loading: teamLoading, refresh } = useTeamData(activeTeamId);
   const [teamRegions, setTeamRegions] = useState([]);
 
   // Load available teams for switching

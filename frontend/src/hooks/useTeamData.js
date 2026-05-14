@@ -2,10 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
-export function useTeamData(adminTeamId = null, viewTeamId = null) {
+export function useTeamData(teamIdOverride = null) {
   const { user } = useAuth();
-  const teamId = adminTeamId ?? viewTeamId ?? user?.teamId;
-  const isAdmin = adminTeamId != null;
+  const teamId = teamIdOverride ?? user?.teamId;
 
   const [team, setTeam] = useState(null);
   const [nodes, setNodes] = useState([]);
@@ -15,11 +14,10 @@ export function useTeamData(adminTeamId = null, viewTeamId = null) {
   const fetchData = useCallback(async () => {
     if (!teamId) return;
     try {
-      const basePath = isAdmin ? `/admin/teams/${teamId}` : `/teams/${teamId}`;
       const [teamRes, nodesRes, connRes] = await Promise.all([
         api.get(`/teams/${teamId}`),
-        api.get(`${basePath}/nodes`),
-        api.get(`${basePath}/connections`),
+        api.get(`/teams/${teamId}/nodes`),
+        api.get(`/teams/${teamId}/connections`),
       ]);
       setTeam(teamRes.data);
       setNodes(nodesRes.data);
@@ -29,7 +27,7 @@ export function useTeamData(adminTeamId = null, viewTeamId = null) {
     } finally {
       setLoading(false);
     }
-  }, [teamId, isAdmin]);
+  }, [teamId]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
