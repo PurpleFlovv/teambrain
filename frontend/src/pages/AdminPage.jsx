@@ -304,8 +304,13 @@ const TeamList = () => {
     setConfirmAction({
       message: `确定删除团队 ${t.teamName}？节点和连接将一并删除。`,
       onConfirm: async () => {
-        await api.delete(`/admin/teams/${t.id}`);
-        setTeams(prev => prev.filter(x => x.id !== t.id));
+        try {
+          await api.delete(`/admin/teams/${t.id}`);
+          setTeams(prev => prev.filter(x => x.id !== t.id));
+          toast.success('团队已删除');
+        } catch (err) {
+          toast.error('删除失败: ' + (err.response?.data?.message || err.message));
+        }
       },
     });
   };

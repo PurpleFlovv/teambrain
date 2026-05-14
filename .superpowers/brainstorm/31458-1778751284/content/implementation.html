@@ -1,0 +1,125 @@
+<h2>Implementation Plan: Component-First Unification</h2>
+<p class="subtitle">Phase 1: Design Tokens → Phase 2: Shared Components → Phase 3: Page Refactoring</p>
+
+<div class="section">
+  <h3>Phase 1 — Design Tokens (index.css)</h3>
+  <div style="background:#0B0B10;padding:16px;border-radius:10px;font-family:monospace;font-size:12px;color:#E2E8F0;line-height:1.6;">
+    <span style="color:#60A5FA;">:root</span> {<br>
+    &nbsp;&nbsp;<span style="color:#94A3B8;">/* Cosmic Glass — Dark (default) */</span><br>
+    &nbsp;&nbsp;--bg-deep-space: #0B0B10;<br>
+    &nbsp;&nbsp;--bg-midnight: #0A0E27;<br>
+    &nbsp;&nbsp;--bg-navy: #0F172A;<br>
+    &nbsp;&nbsp;--glass-bg: rgba(15,23,42,0.55);<br>
+    &nbsp;&nbsp;--glass-blur: 16px;<br>
+    &nbsp;&nbsp;--glass-border: rgba(148,163,184,0.12);<br>
+    &nbsp;&nbsp;--accent: #3B82F6;<br>
+    &nbsp;&nbsp;--accent-glow: 0 0 30px rgba(59,130,246,0.15);<br>
+    &nbsp;&nbsp;--text-primary: #F8FAFC;<br>
+    &nbsp;&nbsp;--text-muted: #94A3B8;<br>
+    }<br>
+    <span style="color:#60A5FA;">.light</span> {<br>
+    &nbsp;&nbsp;<span style="color:#94A3B8;">/* Light mode overrides */</span><br>
+    &nbsp;&nbsp;--bg-deep-space: #F8FAFC;<br>
+    &nbsp;&nbsp;--glass-bg: rgba(255,255,255,0.75);<br>
+    &nbsp;&nbsp;--text-primary: #0F172A;<br>
+    &nbsp;&nbsp;--text-muted: #475569;<br>
+    }
+  </div>
+</div>
+
+<div class="section">
+  <h3>Phase 2 — New Shared Components (4 new)</h3>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;">
+    <div class="glass-panel" style="flex:1;min-width:140px;padding:14px;">
+      <div style="color:#F8FAFC;font-weight:600;font-size:13px;">GlassCard</div>
+      <div style="color:#94A3B8;font-size:11px;margin-top:4px;">替换 bg-black/30 backdrop-blur-sm border pattern</div>
+      <div style="color:#60A5FA;font-size:10px;margin-top:6px;">使用次数: 40+</div>
+    </div>
+    <div class="glass-panel" style="flex:1;min-width:140px;padding:14px;">
+      <div style="color:#F8FAFC;font-weight:600;font-size:13px;">GlassModal</div>
+      <div style="color:#94A3B8;font-size:11px;margin-top:4px;">基于 Dialog，统一所有弹窗</div>
+      <div style="color:#60A5FA;font-size:10px;margin-top:6px;">替换: 4 种不同 modal</div>
+    </div>
+    <div class="glass-panel" style="flex:1;min-width:140px;padding:14px;">
+      <div style="color:#F8FAFC;font-weight:600;font-size:13px;">FormField</div>
+      <div style="color:#94A3B8;font-size:11px;margin-top:4px;">Input + Label + Error 一次封装</div>
+      <div style="color:#60A5FA;font-size:10px;margin-top:6px;">替换: 手写 form 模式</div>
+    </div>
+    <div class="glass-panel" style="flex:1;min-width:140px;padding:14px;">
+      <div style="color:#F8FAFC;font-weight:600;font-size:13px;">PageShell</div>
+      <div style="color:#94A3B8;font-size:11px;margin-top:4px;">max-w + padding + loading/error 统一容器</div>
+      <div style="color:#60A5FA;font-size:10px;margin-top:6px;">替换: max-w-lg/4xl 不一致</div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Phase 3 — Extract Duplicates + Page Refactoring</h3>
+  <table style="width:100%;font-size:12px;border-collapse:collapse;">
+    <tr style="color:#94A3B8;">
+      <th style="text-align:left;padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">Step</th>
+      <th style="text-align:left;padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">Files</th>
+      <th style="text-align:left;padding:8px;border-bottom:1px solid rgba(148,163,184,0.1);">What</th>
+    </tr>
+    <tr>
+      <td style="padding:8px;color:#60A5FA;">3.1</td>
+      <td style="padding:8px;color:#F8FAFC;">NodeModal, RegionModal, DeleteRegionModal</td>
+      <td style="padding:8px;color:#94A3B8;">提取到 components/shared/，MyTeamDetail + TeamEditPage 共用</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;color:#60A5FA;">3.2</td>
+      <td style="padding:8px;color:#F8FAFC;">LoginPage</td>
+      <td style="padding:8px;color:#94A3B8;">用 shadcn Card + Form + Input + Button 重写</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;color:#60A5FA;">3.3</td>
+      <td style="padding:8px;color:#F8FAFC;">MyTeams</td>
+      <td style="padding:8px;color:#94A3B8;">GlassCard + PageShell 替换手写卡片</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;color:#60A5FA;">3.4</td>
+      <td style="padding:8px;color:#F8FAFC;">TeamSquare, JoinTeam</td>
+      <td style="padding:8px;color:#94A3B8;">统一团队列表卡片风格</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;color:#60A5FA;">3.5</td>
+      <td style="padding:8px;color:#F8FAFC;">Profile</td>
+      <td style="padding:8px;color:#94A3B8;">FormField + Card 重写</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;color:#60A5FA;">3.6</td>
+      <td style="padding:8px;color:#F8FAFC;">MyTeamDetail + TeamEditPage</td>
+      <td style="padding:8px;color:#94A3B8;">用共享 Modal + FormField 重写</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;color:#60A5FA;">3.7</td>
+      <td style="padding:8px;color:#F8FAFC;">Index (BrainPointCloud)</td>
+      <td style="padding:8px;color:#94A3B8;">GlassModal 替换 react-modal，保留 3D 场景</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;color:#60A5FA;">3.8</td>
+      <td style="padding:8px;color:#F8FAFC;">AdminPage</td>
+      <td style="padding:8px;color:#94A3B8;">合并到 ProtectedLayout + 玻璃态组件重写</td>
+    </tr>
+    <tr>
+      <td style="padding:8px;color:#60A5FA;">3.9</td>
+      <td style="padding:8px;color:#F8FAFC;">Navbar + App.jsx</td>
+      <td style="padding:8px;color:#94A3B8;">Glassmorphism 导航栏 + sonner 统一通知</td>
+    </tr>
+  </table>
+</div>
+
+<div class="pros-cons" style="margin-top:16px;">
+  <div class="pros"><h4>不动的部分</h4><ul>
+    <li>BrainPointCloud.jsx 的 3D 渲染逻辑</li>
+    <li>MiniBrain.jsx</li>
+    <li>后端 API 和数据结构</li>
+    <li>shadcn/ui 50+ 组件库本身</li>
+  </ul></div>
+  <div class="cons"><h4>风险控制</h4><ul>
+    <li>每步只改一个关注点</li>
+    <li>保留旧样式直到新组件验证可用</li>
+    <li>sonner toast 逐步替换 alert()</li>
+    <li>不引入新依赖</li>
+  </ul></div>
+</div>

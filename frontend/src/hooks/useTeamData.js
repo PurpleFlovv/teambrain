@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 
-export function useTeamData(adminTeamId = null) {
+export function useTeamData(adminTeamId = null, viewTeamId = null) {
   const { user } = useAuth();
-  const teamId = adminTeamId ?? user?.teamId;
+  const teamId = adminTeamId ?? viewTeamId ?? user?.teamId;
   const isAdmin = adminTeamId != null;
 
   const [team, setTeam] = useState(null);

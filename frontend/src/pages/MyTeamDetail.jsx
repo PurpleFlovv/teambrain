@@ -51,6 +51,10 @@ const MyTeamDetail = () => {
   // MiniBrain toggle
   const [showMiniBrain, setShowMiniBrain] = useState(false);
 
+  // Strategy panel state
+  const [strategyConns, setStrategyConns] = useState([]);
+  const [showStrategy, setShowStrategy] = useState(false);
+
   // Confirm dialog state
   const [confirmAction, setConfirmAction] = useState(null);
 
@@ -73,6 +77,14 @@ const MyTeamDetail = () => {
       .catch(() => {});
   };
   useEffect(() => { loadTeamRegions(); }, [teamId]);
+
+  // Fetch strategy connections
+  useEffect(() => {
+    if (!teamId) return;
+    api.get(`/admin/teams/${teamId}/connections/computed`)
+      .then(r => setStrategyConns(r.data))
+      .catch(() => {});
+  }, [teamId, nodes]);
 
   // ---- Info Tab ----
   const saveInfo = async () => {
@@ -298,6 +310,23 @@ const MyTeamDetail = () => {
                       <div className="text-xs text-white text-opacity-50 mt-0.5">
                         {node.nodeType === 'MEMBER' ? '成员' : '项目'} · {node.brainRegionName || '未分配'}
                       </div>
+                      {node.tags && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {node.tags.split(',').map(tag => {
+                            const t = tag.trim();
+                            if (!t) return null;
+                            return (
+                              <span key={t} className={`px-1.5 py-0.5 rounded text-[10px] font-mono ${
+                                t.startsWith('bridge') ? 'bg-blue-500 bg-opacity-30 text-blue-300' :
+                                t === 'leader' ? 'bg-amber-500 bg-opacity-30 text-amber-300' :
+                                'bg-white bg-opacity-10 text-white text-opacity-60'
+                              }`}>
+                                {t}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                       <button onClick={(e) => { e.stopPropagation(); openEditNode(node); }}
@@ -340,6 +369,58 @@ const MyTeamDetail = () => {
                   )}
                 </div>
               </div>
+
+              {/* Strategy summary panel */}
+              <button onClick={() => setShowStrategy(!showStrategy)}
+                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+                {showStrategy ? '收起策略' : '策略总览'}
+              </button>
+
+              {showStrategy && (() => {
+                const strategyStats = {};
+                strategyConns.forEach(c => {
+                  const s = c.strategy || 'unknown';
+                  strategyStats[s] = (strategyStats[s] || 0) + 1;
+                });
+                return (
+                  <>
+                    <GlassCard className="p-3 space-y-2 mt-2">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">连接策略</div>
+                      {[
+                        { key: 'same_region', label: '同区协作', desc: '同脑区节点随机连接(≤5个)' },
+                        { key: 'leader', label: '负责关系', desc: '标签 leader 的节点连接同区项目' },
+                        { key: 'bridge', label: '跨区桥接', desc: '标签 bridge:区域ID 连接目标区域' },
+                        { key: 'manual', label: '手动连接', desc: '用户自定义连接' },
+                      ].map(s => (
+                        <div key={s.key} className="flex items-center justify-between">
+                          <div>
+                            <span className="text-xs text-[var(--text-primary)]">{s.label}</span>
+                            <span className="text-[10px] text-[var(--text-muted)] ml-2">{s.desc}</span>
+                          </div>
+                          <span className="text-xs text-[var(--accent)] font-mono">{strategyStats[s.key] || 0}</span>
+                        </div>
+                      ))}
+                      <div className="pt-1 border-t border-[var(--glass-border)] flex justify-between">
+                        <span className="text-xs text-[var(--text-primary)] font-bold">总计</span>
+                        <span className="text-xs text-[var(--accent)] font-bold">{strategyConns.length}</span>
+                      </div>
+                    </GlassCard>
+                    <GlassCard className="p-3 space-y-2 mt-2">
+                      <div className="text-xs font-bold text-[var(--text-primary)]">标签节点</div>
+                      {(nodes || []).filter(n => n.tags).length === 0 ? (
+                        <p className="text-xs text-[var(--text-muted)]">暂无标签节点。在节点编辑中添加 leader 或 bridge:区域ID 标签来启用自动连接。</p>
+                      ) : (
+                        (nodes || []).filter(n => n.tags).map(n => (
+                          <div key={n.id} className="flex items-center justify-between">
+                            <span className="text-xs text-[var(--text-primary)]">{n.name}</span>
+                            <span className="text-[10px] text-[var(--accent)] font-mono">{n.tags}</span>
+                          </div>
+                        ))
+                      )}
+                    </GlassCard>
+                  </>
+                );
+              })()}
 
               {showMiniBrain ? (
                 <div className="flex justify-center mt-4">
