@@ -82,8 +82,7 @@ const Dashboard = () => {
             {regionEntries.map(({ name, color, count }) => {
               const pct = Math.round(count / maxDist * 100);
               return (
-                <div key={name} className="flex items-center space-x-2 cursor-pointer hover:opacity-80"
-                  onClick={() => navigate(`/admin/teams/${selectedTeamId}`)}>
+                <div key={name} className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color || '#888' }} />
                   <span className="text-white text-xs w-16 shrink-0">{name}</span>
                   <div className="flex-1 h-4 bg-white bg-opacity-5 rounded overflow-hidden">
@@ -274,7 +273,6 @@ const TeamList = () => {
   const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
   const [search, setSearch] = useState('');
-  const [editing, setEditing] = useState(null);
   const [createModal, setCreateModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamDesc, setNewTeamDesc] = useState('');
@@ -292,10 +290,8 @@ const TeamList = () => {
     setTeams(prev => prev.filter(x => x.id !== t.id));
   };
 
-  const handleEdit = async () => {
-    await api.put(`/admin/teams/${editing.id}`, { teamName: editing.teamName, description: editing.description || '' });
-    setEditing(null);
-    api.get('/admin/teams').then(r => setTeams(r.data));
+  const handleEditClick = (t) => {
+    navigate(`/admin/teams/${t.id}/edit`);
   };
 
   return (
@@ -321,7 +317,7 @@ const TeamList = () => {
                 <td className="p-3">{t.memberCount}</td><td className="p-3">{t.projectCount}</td>
                 <td className="p-3 space-x-2">
                   <button onClick={() => navigate(`/admin/teams/${t.id}`)} className="text-blue-400 hover:underline text-xs">查看</button>
-                  <button onClick={() => setEditing(t)} className="text-blue-400 hover:underline text-xs">编辑</button>
+                  <button onClick={() => handleEditClick(t)} className="text-blue-400 hover:underline text-xs">编辑</button>
                   <button onClick={() => handleDelete(t)} className="text-red-400 hover:underline text-xs">删除</button>
                 </td>
               </tr>
@@ -329,29 +325,6 @@ const TeamList = () => {
           </tbody>
         </table>
       </div>
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
-          <div className="bg-black bg-opacity-80 border border-white border-opacity-20 rounded-lg p-6 w-96">
-            <h3 className="text-white text-lg font-bold mb-4">编辑团队</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-white text-sm mb-1">团队名</label>
-                <input type="text" value={editing.teamName} onChange={e => setEditing({ ...editing, teamName: e.target.value })}
-                  className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
-              </div>
-              <div>
-                <label className="block text-white text-sm mb-1">描述</label>
-                <input type="text" value={editing.description || ''} onChange={e => setEditing({ ...editing, description: e.target.value })}
-                  className="w-full bg-black bg-opacity-30 border border-white border-opacity-20 rounded px-3 py-2 text-white text-sm" />
-              </div>
-              <div className="flex justify-end space-x-3 pt-2">
-                <button onClick={() => setEditing(null)} className="px-4 py-2 rounded text-sm bg-gray-500 bg-opacity-50 text-white">取消</button>
-                <button onClick={handleEdit} className="px-4 py-2 rounded text-sm bg-blue-500 bg-opacity-50 text-white">保存</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
       {createModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
           <div className="bg-black bg-opacity-80 border border-white border-opacity-20 rounded-lg p-6 w-96">
@@ -389,7 +362,7 @@ const TeamDetail = () => {
   const location = useLocation();
   const match = location.pathname.match(/\/admin\/teams\/(\d+)/);
   const teamId = match ? parseInt(match[1]) : null;
-  const { regions, points: brainPoints, loading: brainLoading } = useBrainData();
+  const { regions, points: brainPoints, loading: brainLoading } = useBrainData(teamId);
   const { team, nodes, loading: teamLoading } = useTeamData(teamId);
   const [strategyConns, setStrategyConns] = useState([]);
 
