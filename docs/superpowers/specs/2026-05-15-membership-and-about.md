@@ -10,7 +10,62 @@
 
 ---
 
-## 二、权限模型
+## 二、多团队归属处理
+
+### 2.1 JWT & AuthContext
+
+`LoginResponse` 改 `teamId` 为 `teamIds: []`：
+
+```java
+// LoginResponse.java
+private List<Long> teamIds;  // 所有已加入团队的 ID
+
+// AuthService.login()
+List<Long> teamIds = userTeamRepository.findByUserId(user.getId())
+    .stream().map(ut -> ut.getTeamId()).toList();
+```
+
+前端 `AuthContext.user` 同步改为：
+```js
+{ id, username, teamIds: [], roles: [] }
+```
+
+### 2.2 首页默认团队逻辑
+
+`Index.jsx` 选择逻辑：
+1. 若用户有所有者团队（`team.user_id == userId`）→ 默认第一个所有者团队
+2. 否则 → 默认第一个加入的团队（`teamIds[0]`）
+3. 若 `teamIds` 为空 → 使用影视飓风（teamId=1）
+
+```js
+const ownedTeamId = teamIds.find(tid => allTeams.find(t => t.id === tid && t.ownerId === user.id));
+const defaultTeamId = ownedTeamId || teamIds[0] || 1;
+```
+
+### 2.3 权限判定
+
+权限在每个请求中动态判定，不存于 token：
+
+```java
+// TeamService.java
+public boolean isOwner(Long teamId, Long userId) {
+    return teamRepository.findById(teamId)
+        .map(t -> t.getUser().getId().equals(userId))
+        .orElse(false);
+}
+
+public boolean canEdit(Long teamId, Long userId, boolean isAdmin) {
+    if (isAdmin) return true;
+    return isOwner(teamId, userId);
+}
+```
+
+- TEAM_ADMIN = 鉴权时实时检查 `team.user_id == currentUserId || isAdmin`
+- USER = `teamIds` 中包含该团队即可查看，但不能修改
+
+---
+
+## 三、权限模型
 
 | 角色 | 团队可见范围 | 编辑节点/脑区 | 管理成员 | 管理全局 |
 |------|:----------:|:----------:|:-------:|:------:|
@@ -190,7 +245,22 @@ TeamBrain    我的团队  团队广场  个人信息  关于  [管理]
 | DELETE | `/api/teams/{id}/leave` | 需登录 | TeamService.leaveTeam(teamId, username) |
 | DELETE | `/api/teams/{id}/members/{userId}` | owner/admin | TeamService.removeMember(teamId, userId, adminUsername) |
 
-### 7.2 权限调整
+### 7.2 用户列表多团队显示
+
+AdminPage 用户列表新增一列"团队数"：
+
+```
+状态 | 用户名 | 角色 | 团队 | 团队数 | 操作
+ 🟢   admin   ADMIN   —      0      [编辑]
+ 🟢   user10  USER   星辰科技  3      [编辑]
+```
+
+- "团队"列 = 所有者团队名（`team.user_id == user.id`），无则为 —
+- "团队数"列 = `teamIds.length`
+
+后端 `GET /api/admin/users` 返回新增 `ownedTeamName` 和 `teamCount`。
+
+### 7.3 权限调整
 
 AdminController 的团队端点增加 TEAM_ADMIN 访问：
 - `GET /api/admin/teams/{id}/nodes` — 若当前用户为 team owner，允许访问
@@ -205,12 +275,19 @@ AdminController 的团队端点增加 TEAM_ADMIN 访问：
 | 后端 | `entity/UserTeam.java` | 新建 |
 | 后端 | `entity/UserTeamId.java` | 新建（复合主键类） |
 | 后端 | `repository/UserTeamRepository.java` | 新建 |
-| 后端 | `service/TeamService.java` | 修改：加成员管理方法 |
+| 后端 | `dto/LoginResponse.java` | 修改：teamId → teamIds, +ownedTeamId |
+| 后端 | `service/AuthService.java` | 修改：登录时查 user_team 填充 teamIds |
+| 后端 | `service/TeamService.java` | 修改：加成员管理 + isOwner/canEdit |
+| 后端 | `service/AdminService.java` | 修改：getAllUsers 加 ownedTeamName/teamCount |
 | 后端 | `controller/TeamController.java` | 修改：加成员/我的团队端点 |
+| 后端 | `controller/AdminController.java` | 修改：TEAM_ADMIN 可访问团队端点 |
 | 后端 | `config/MockDataSeeder.java` | 修改：user_team 关联数据 |
 | 后端 | `config/SecurityConfig.java` | 修改：/api/about 公开 |
+| 前端 | `context/AuthContext.jsx` | 修改：teamId → teamIds |
 | 前端 | `components/Navbar.jsx` | 修改：加"关于" |
 | 前端 | `App.jsx` | 修改：加 #/about 路由 |
 | 前端 | `pages/About.jsx` | 新建 |
+| 前端 | `pages/Index.jsx` | 修改：默认团队逻辑（owner优先→首个加入→默认1） |
 | 前端 | `pages/MyTeams.jsx` | 修改：调用 /user/teams |
 | 前端 | `pages/MyTeamDetail.jsx` | 修改：只读视图+成员列表 |
+| 前端 | `pages/AdminPage.jsx` | 修改：用户列表加团队数列
