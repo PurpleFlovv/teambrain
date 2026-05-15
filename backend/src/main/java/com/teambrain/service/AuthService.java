@@ -6,12 +6,15 @@ import com.teambrain.dto.RegisterRequest;
 import com.teambrain.entity.Role;
 import com.teambrain.entity.Team;
 import com.teambrain.entity.User;
+import com.teambrain.entity.UserTeam;
 import com.teambrain.repository.RoleRepository;
 import com.teambrain.repository.TeamRepository;
 import com.teambrain.repository.UserRepository;
+import com.teambrain.repository.UserTeamRepository;
 import com.teambrain.util.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -22,18 +25,22 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final TeamRepository teamRepository;
+    private final UserTeamRepository userTeamRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository,
-                       TeamRepository teamRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+                       TeamRepository teamRepository, UserTeamRepository userTeamRepository,
+                       PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.teamRepository = teamRepository;
+        this.userTeamRepository = userTeamRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
     }
 
+    @Transactional
     public LoginResponse register(RegisterRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
             throw new RuntimeException("用户名已存在");
@@ -42,21 +49,18 @@ public class AuthService {
         User user = new User();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmail(request.getEmail());
 
         Role userRole = roleRepository.findByName("USER")
                 .orElseThrow(() -> new RuntimeException("默认角色未配置"));
         user.setRoles(Set.of(userRole));
         user = userRepository.save(user);
 
-        Team team = new Team(request.getUsername() + "的团队", "团队大脑", user);
-        teamRepository.save(team);
-
         List<String> roles = List.of("USER");
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), roles);
-        return new LoginResponse(token, user.getId(), user.getUsername(), team.getId(), roles);
+        return new LoginResponse(token, user.getId(), user.getUsername(), null, List.of(), roles);
     }
 
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new RuntimeException("用户名或密码错误"));
@@ -69,11 +73,18 @@ public class AuthService {
             throw new RuntimeException("账号已被禁用");
         }
 
-        Team team = teamRepository.findByUserId(user.getId())
-                .orElseGet(() -> teamRepository.save(new Team(user.getUsername() + "的团队", "团队大脑", user)));
+        Long ownedTeamId = teamRepository.findByUserId(user.getId())
+                .map(Team::getId).orElse(null);
+
+        List<Long> teamIds = new java.util.ArrayList<>(userTeamRepository.findByUserId(user.getId())
+                .stream().map(UserTeam::getTeamId).toList());
+        // Ensure owned team is first in the list
+        if (ownedTeamId != null && !teamIds.contains(ownedTeamId)) {
+            teamIds.add(0, ownedTeamId);
+        }
 
         List<String> roles = user.getRoles().stream().map(Role::getName).toList();
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), roles);
-        return new LoginResponse(token, user.getId(), user.getUsername(), team.getId(), roles);
+        return new LoginResponse(token, user.getId(), user.getUsername(), ownedTeamId, teamIds, roles);
     }
 }

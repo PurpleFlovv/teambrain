@@ -60,7 +60,6 @@ public class AdminService {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", u.getId());
             m.put("username", u.getUsername());
-            m.put("email", u.getEmail() != null ? u.getEmail() : "");
             m.put("enabled", u.getEnabled());
             m.put("roles", u.getRoles().stream().map(r -> r.getName()).toList());
             m.put("teamId", t != null ? t.getId() : null);
@@ -69,31 +68,27 @@ public class AdminService {
         }).toList();
     }
 
-    public User createUser(String username, String password, String email, List<String> roles,
+    public User createUser(String username, String password, List<String> roles,
                            String adminUsername) {
         if (userRepository.existsByUsername(username))
             throw new RuntimeException("用户名已存在");
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
-        user.setEmail(email);
         Set<Role> roleSet = new HashSet<>();
         for (String r : roles) {
             roleRepository.findByName(r).ifPresent(roleSet::add);
         }
         user.setRoles(roleSet);
         user = userRepository.save(user);
-        Team team = teamRepository.save(new Team(user.getUsername() + "的团队", "团队大脑", user));
-        brainRegionService.copyTemplatesForTeam(team.getId());
         log(adminUsername, "CREATE_USER", username);
         return user;
     }
 
-    public User updateUser(Long id, String username, String email, List<String> roles,
+    public User updateUser(Long id, String username, List<String> roles,
                            String password, String adminUsername) {
         User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("用户不存在"));
         if (username != null) user.setUsername(username);
-        if (email != null) user.setEmail(email);
         if (password != null && !password.isEmpty()) user.setPassword(passwordEncoder.encode(password));
         if (roles != null && !roles.isEmpty()) {
             Set<Role> roleSet = new HashSet<>();
