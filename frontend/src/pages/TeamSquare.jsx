@@ -35,7 +35,7 @@ const TeamSquare = () => {
   };
 
   return (
-    <PageShell maxWidth="max-w-5xl">
+    <PageShell maxWidth="max-w-5xl" className="overflow-y-auto h-full scrollbar-glass">
       <h2 className="text-xl font-bold text-[var(--text-primary)] mb-6">团队广场</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {teams.map(t => (
@@ -44,7 +44,7 @@ const TeamSquare = () => {
             <p className="text-sm mb-4 text-[var(--text-muted)] line-clamp-2">{t.description || '暂无描述'}</p>
             <div className="flex items-center justify-between">
               <span className="text-xs text-[var(--text-muted)]">{t.ownerUsername}</span>
-              {t.id !== user?.teamId && !joinedIds.has(t.id) ? (
+              {!(user?.teamIds || []).includes(t.id) && !joinedIds.has(t.id) ? (
                 <Button size="sm" onClick={() => openDetail(t)}>加入</Button>
               ) : (
                 <span className="text-xs text-[var(--success)]">已加入</span>

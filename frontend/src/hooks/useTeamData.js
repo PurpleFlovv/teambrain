@@ -4,7 +4,7 @@ import api from '../services/api';
 
 export function useTeamData(teamIdOverride = null) {
   const { user } = useAuth();
-  const teamId = teamIdOverride ?? user?.teamId;
+  const teamId = teamIdOverride ?? (user?.ownedTeamId || (user?.teamIds?.length > 0 ? user?.teamIds[0] : null));
 
   const [team, setTeam] = useState(null);
   const [nodes, setNodes] = useState([]);

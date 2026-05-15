@@ -12,11 +12,11 @@ const MyTeams = () => {
   const [teams, setTeams] = useState([]);
 
   useEffect(() => {
-    api.get('/teams/public').then(r => setTeams(r.data)).catch(() => {});
+    api.get('/user/teams').then(r => setTeams(r.data)).catch(() => {});
   }, []);
 
   return (
-    <PageShell maxWidth="max-w-4xl">
+    <PageShell maxWidth="max-w-4xl" className="overflow-y-auto h-full scrollbar-glass">
       <h2 className="text-xl font-bold text-[var(--text-primary)] mb-6">我的团队</h2>
       {teams.length === 0 ? (
         <div className="text-[var(--text-muted)] text-center py-12">
@@ -31,11 +31,13 @@ const MyTeams = () => {
               onClick={() => navigate(`/my-teams/${t.id}`)}
               className="p-6 cursor-pointer hover:border-[var(--accent)]/30 transition-all"
             >
-              <h3 className="font-bold text-lg mb-2 text-[var(--text-primary)]">{t.teamName}</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-lg text-[var(--text-primary)]">{t.teamName}</h3>
+                {t.isOwner && <span className="text-xs text-[var(--accent)]">所有者</span>}
+              </div>
               <p className="text-sm mb-4 text-[var(--text-muted)]">{t.description || '暂无描述'}</p>
               <div className="flex items-center space-x-4 text-xs text-[var(--text-muted)]">
-                <span>{t.memberCount} 成员</span>
-                <span>{t.projectCount} 项目</span>
+                <span>{t.nodeCount || 0} 节点</span>
               </div>
             </GlassCard>
           ))}

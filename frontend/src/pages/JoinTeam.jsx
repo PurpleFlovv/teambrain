@@ -40,7 +40,7 @@ const JoinTeam = () => {
                 <span>{t.memberCount || 0} 成员</span>
                 <span>{t.projectCount || 0} 项目</span>
               </div>
-              {t.id !== user?.teamId && !joinedIds.has(t.id) ? (
+              {!(user?.teamIds || []).includes(t.id) && !joinedIds.has(t.id) ? (
                 <Button size="sm" onClick={() => handleJoin(t)}>加入团队</Button>
               ) : (
                 <span className="text-xs text-[var(--success)]">已加入</span>

@@ -8,6 +8,7 @@ import MyTeamDetail from "./pages/MyTeamDetail";
 import TeamSquare from "./pages/TeamSquare";
 import JoinTeam from "./pages/JoinTeam";
 import Profile from "./pages/Profile";
+import About from "./pages/About";
 import AdminPage from "./pages/AdminPage";
 import Navbar from "./components/Navbar";
 
@@ -45,6 +46,7 @@ const AppRoutes = () => (
       <Route path="/teams" element={<ProtectedLayout><TeamSquare /></ProtectedLayout>} />
       <Route path="/join-team" element={<ProtectedLayout><JoinTeam /></ProtectedLayout>} />
       <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
+      <Route path="/about" element={<ProtectedLayout><About /></ProtectedLayout>} />
       <Route path="/admin/*" element={<ProtectedLayout><AdminRoute><AdminPage /></AdminRoute></ProtectedLayout>} />
     </Routes>
   </HashRouter>

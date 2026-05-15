@@ -119,7 +119,6 @@ const Dashboard = () => {
 // ---- User Management ----
 const UserForm = ({ initial, onSave, onCancel }) => {
   const [username, setUsername] = useState(initial?.username || '');
-  const [email, setEmail] = useState(initial?.email || '');
   const [password, setPassword] = useState('');
   const [roles, setRoles] = useState(initial?.roles || ['USER']);
   const toggleRole = (r) => setRoles(prev => prev.includes(r) ? prev.filter(x => x !== r) : [...prev, r]);
@@ -130,7 +129,6 @@ const UserForm = ({ initial, onSave, onCancel }) => {
     const errs = {};
     if (!username.trim()) errs.username = '请输入用户名';
     if (!initial && !password) errs.password = '请输入密码';
-    if (!email.trim()) errs.email = '请输入邮箱';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -142,12 +140,6 @@ const UserForm = ({ initial, onSave, onCancel }) => {
         <input type="text" value={username} onChange={e => setUsername(e.target.value)}
           className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
         {errors.username && <p className="text-red-400 text-xs mt-1">{errors.username}</p>}
-      </div>
-      <div>
-        <label className="block text-white text-sm mb-1">邮箱</label>
-        <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-          className="w-full bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
-        {errors.email && <p className="text-red-400 text-xs mt-1">{errors.email}</p>}
       </div>
       <div>
         <label className="block text-white text-sm mb-1">{initial ? '新密码（留空不修改）' : '密码'}</label>
@@ -168,7 +160,7 @@ const UserForm = ({ initial, onSave, onCancel }) => {
       </div>
       <div className="flex justify-end space-x-3 pt-2">
         <button onClick={onCancel} className="px-4 py-2 rounded text-white text-sm bg-gray-500 bg-opacity-50">取消</button>
-        <button onClick={() => { if (validate()) onSave({ username, email, password, roles }); }} className="px-4 py-2 rounded text-white text-sm bg-blue-500 bg-opacity-50">保存</button>
+        <button onClick={() => { if (validate()) onSave({ username, password, roles }); }} className="px-4 py-2 rounded text-white text-sm bg-blue-500 bg-opacity-50">保存</button>
       </div>
     </div>
   );
@@ -185,10 +177,10 @@ const UserList = () => {
   const load = () => api.get('/admin/users').then(r => setUsers(r.data)).catch(() => {});
   useEffect(() => { load(); }, []);
 
+  const uniqueOwnedTeamNames = [...new Set(users.map(u => u.ownedTeamName).filter(Boolean))];
   const filtered = users.filter(u => {
-    const matchSearch = u.username.toLowerCase().includes(search.toLowerCase()) ||
-      (u.email || '').toLowerCase().includes(search.toLowerCase());
-    const matchTeam = !teamFilter || (u.teamId && u.teamId.toString() === teamFilter);
+    const matchSearch = u.username.toLowerCase().includes(search.toLowerCase());
+    const matchTeam = !teamFilter || u.ownedTeamName === teamFilter;
     return matchSearch && matchTeam;
   });
 
@@ -219,13 +211,13 @@ const UserList = () => {
         <button onClick={() => setModal('create')} className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 px-4 py-2 rounded text-white text-sm">+ 新建用户</button>
       </div>
       <div className="flex items-center mb-4">
-        <input type="text" placeholder="搜索用户名或邮箱..." value={search} onChange={e => setSearch(e.target.value)}
+        <input type="text" placeholder="搜索用户名..." value={search} onChange={e => setSearch(e.target.value)}
           className="flex-1 bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm" />
         <select value={teamFilter} onChange={e => setTeamFilter(e.target.value)}
           className="bg-[var(--glass-bg)] border border-[var(--glass-border)] rounded px-3 py-1.5 text-[var(--text-primary)] text-sm ml-2">
           <option value="">全部团队</option>
-          {[...new Map(users.filter(u => u.teamId).map(u => [u.teamId, u.teamName])).entries()].map(([id, name]) => (
-            <option key={id} value={id}>{name}</option>
+          {uniqueOwnedTeamNames.map(name => (
+            <option key={name} value={name}>{name}</option>
           ))}
         </select>
       </div>
@@ -233,8 +225,8 @@ const UserList = () => {
         <table className="w-full text-white text-sm">
           <thead>
             <tr className="border-b border-white border-opacity-10 text-left">
-              <th className="p-3 opacity-60">状态</th><th className="p-3 opacity-60">用户名</th><th className="p-3 opacity-60">邮箱</th>
-              <th className="p-3 opacity-60">角色</th><th className="p-3 opacity-60">团队</th><th className="p-3 opacity-60">操作</th>
+              <th className="p-3 opacity-60">状态</th><th className="p-3 opacity-60">用户名</th>
+              <th className="p-3 opacity-60">角色</th><th className="p-3 opacity-60">团队</th><th className="p-3 opacity-60">团队数</th><th className="p-3 opacity-60">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -244,15 +236,16 @@ const UserList = () => {
                   <button onClick={async () => { await api.put(`/admin/users/${u.id}/state`, { enabled: !u.enabled }); load(); }}
                     className={`w-3 h-3 rounded-full ${u.enabled ? 'bg-green-400' : 'bg-red-400'}`} title={u.enabled ? '启用' : '禁用'} />
                 </td>
-                <td className="p-3">{u.username}</td><td className="p-3 opacity-60">{u.email}</td>
+                <td className="p-3">{u.username}</td>
                 <td className="p-3">{(u.roles || []).join(', ')}</td>
                 <td className="p-3">
-                  {u.teamName ? (
-                    <span>{u.teamName}</span>
+                  {u.ownedTeamName ? (
+                    <span>{u.ownedTeamName}</span>
                   ) : (
-                    <button onClick={() => navigate('/join-team')} className="text-blue-400 hover:underline text-xs">未加入 - 选择团队</button>
+                    <span className="text-[var(--text-muted)]">—</span>
                   )}
                 </td>
+                <td className="p-3">{u.teamCount || 0}</td>
                 <td className="p-3 space-x-2">
                   <button onClick={() => setModal(u)} className="text-blue-400 hover:underline text-xs">编辑</button>
                   {u.username !== me?.username && (
