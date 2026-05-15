@@ -3,8 +3,11 @@ package com.teambrain.controller;
 import com.teambrain.dto.NodeConnectionDto;
 import com.teambrain.dto.TeamNodeDto;
 import com.teambrain.entity.AuditLog;
+import com.teambrain.entity.TeamNode;
+import com.teambrain.repository.TeamNodeRepository;
 import com.teambrain.service.*;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,16 +24,41 @@ public class AdminController {
     private final TeamNodeService teamNodeService;
     private final ConnectionService connectionService;
     private final ConnectionStrategyService strategyService;
+    private final TeamService teamService;
+    private final TeamNodeRepository teamNodeRepo;
 
     public AdminController(AdminService adminService, TeamNodeService teamNodeService,
-                           ConnectionService connectionService, ConnectionStrategyService strategyService) {
+                           ConnectionService connectionService, ConnectionStrategyService strategyService,
+                           TeamService teamService, TeamNodeRepository teamNodeRepo) {
         this.adminService = adminService;
         this.teamNodeService = teamNodeService;
         this.connectionService = connectionService;
         this.strategyService = strategyService;
+        this.teamService = teamService;
+        this.teamNodeRepo = teamNodeRepo;
     }
 
     private String username(UserDetails ud) { return ud != null ? ud.getUsername() : "system"; }
+
+    private boolean isAdmin(UserDetails ud) {
+        return ud != null && ud.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private void checkTeamAccess(Long teamId, UserDetails ud) {
+        if (isAdmin(ud)) return;
+        if (teamService.isOwner(teamId, username(ud))) return;
+        throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN, "无权操作此团队");
+    }
+
+    private void checkNodeOwner(Long nodeId, UserDetails ud) {
+        TeamNode node = teamNodeRepo.findById(nodeId).orElse(null);
+        if (node == null) return;
+        if (isAdmin(ud)) return;
+        if (!teamService.isOwner(node.getTeam().getId(), username(ud))) {
+            throw new org.springframework.web.server.ResponseStatusException(HttpStatus.FORBIDDEN, "无权操作此节点");
+        }
+    }
 
     @GetMapping("/stats")
     public ResponseEntity<Map<String, Long>> getStats() {
@@ -47,10 +75,9 @@ public class AdminController {
                                          @AuthenticationPrincipal UserDetails ud) {
         String uname = (String) body.get("username");
         String pwd = (String) body.get("password");
-        String email = (String) body.get("email");
         @SuppressWarnings("unchecked")
         List<String> roles = (List<String>) body.get("roles");
-        adminService.createUser(uname, pwd, email, roles, username(ud));
+        adminService.createUser(uname, pwd, roles, username(ud));
         return ResponseEntity.ok(Map.of("message", "用户已创建"));
     }
 
@@ -58,7 +85,7 @@ public class AdminController {
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> body,
                                          @AuthenticationPrincipal UserDetails ud) {
         adminService.updateUser(id,
-            (String) body.get("username"), (String) body.get("email"),
+            (String) body.get("username"),
             (List<String>) body.get("roles"), (String) body.get("password"), username(ud));
         return ResponseEntity.ok(Map.of("message", "用户已更新"));
     }
@@ -83,6 +110,7 @@ public class AdminController {
     @PutMapping("/teams/{id}")
     public ResponseEntity<?> updateTeam(@PathVariable Long id, @RequestBody Map<String, String> body,
                                          @AuthenticationPrincipal UserDetails ud) {
+        checkTeamAccess(id, ud);
         adminService.updateTeam(id, body.get("teamName"), body.get("description"), username(ud));
         return ResponseEntity.ok(Map.of("message", "团队已更新"));
     }
@@ -102,12 +130,16 @@ public class AdminController {
     }
 
     @GetMapping("/teams/{id}/nodes")
-    public ResponseEntity<List<TeamNodeDto>> getTeamNodes(@PathVariable Long id) {
+    public ResponseEntity<List<TeamNodeDto>> getTeamNodes(@PathVariable Long id,
+                                                           @AuthenticationPrincipal UserDetails ud) {
+        checkTeamAccess(id, ud);
         return ResponseEntity.ok(teamNodeService.getTeamNodes(id));
     }
 
     @GetMapping("/teams/{id}/connections")
-    public ResponseEntity<List<NodeConnectionDto>> getTeamConnections(@PathVariable Long id) {
+    public ResponseEntity<List<NodeConnectionDto>> getTeamConnections(@PathVariable Long id,
+                                                                       @AuthenticationPrincipal UserDetails ud) {
+        checkTeamAccess(id, ud);
         return ResponseEntity.ok(connectionService.getTeamConnections(id));
     }
 
@@ -117,7 +149,9 @@ public class AdminController {
     }
 
     @PutMapping("/nodes/{id}/region")
-    public ResponseEntity<?> moveRegion(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> moveRegion(@PathVariable Long id, @RequestBody Map<String, Object> body,
+                                         @AuthenticationPrincipal UserDetails ud) {
+        checkNodeOwner(id, ud);
         Long regionId = body.get("brainRegionId") != null ?
                 ((Number) body.get("brainRegionId")).longValue() : null;
         teamNodeService.moveNodeToRegion(id, regionId);

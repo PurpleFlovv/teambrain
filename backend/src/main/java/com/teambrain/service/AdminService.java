@@ -23,12 +23,14 @@ public class AdminService {
     private final RoleRepository roleRepository;
     private final AuditLogRepository auditLogRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserTeamRepository userTeamRepo;
 
     public AdminService(UserRepository userRepository, TeamRepository teamRepository,
                         TeamNodeRepository teamNodeRepository, NodeConnectionRepository connectionRepository,
                         BrainRegionRepository regionRepository, BrainRegionService brainRegionService,
                         RoleRepository roleRepository,
-                        AuditLogRepository auditLogRepository, PasswordEncoder passwordEncoder) {
+                        AuditLogRepository auditLogRepository, PasswordEncoder passwordEncoder,
+                        UserTeamRepository userTeamRepo) {
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
         this.teamNodeRepository = teamNodeRepository;
@@ -38,6 +40,7 @@ public class AdminService {
         this.roleRepository = roleRepository;
         this.auditLogRepository = auditLogRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userTeamRepo = userTeamRepo;
     }
 
     private void log(String username, String action, String target) {
@@ -63,7 +66,8 @@ public class AdminService {
             m.put("enabled", u.getEnabled());
             m.put("roles", u.getRoles().stream().map(r -> r.getName()).toList());
             m.put("teamId", t != null ? t.getId() : null);
-            m.put("teamName", t != null ? t.getTeamName() : null);
+            m.put("ownedTeamName", t != null ? t.getTeamName() : null);
+            m.put("teamCount", userTeamRepo.findByUserId(u.getId()).size());
             return m;
         }).toList();
     }
