@@ -1,6 +1,7 @@
 -- 角色初始化
 INSERT IGNORE INTO sys_role (id, name) VALUES (1, 'USER');
 INSERT IGNORE INTO sys_role (id, name) VALUES (2, 'ADMIN');
+INSERT IGNORE INTO sys_role (id, name) VALUES (3, 'TEAM_ADMIN');
 
 -- 脑区初始化
 INSERT IGNORE INTO brain_region (id, name, color_hex, sort_order, team_id, template_region_id) VALUES
@@ -12,8 +13,8 @@ INSERT IGNORE INTO brain_region (id, name, color_hex, sort_order, team_id, templ
 (6, '小脑/脑干', '#FF4477', 6, NULL, NULL);
 
 -- 管理员账号 admin / admin123
-INSERT IGNORE INTO sys_user (id, username, password, email, enabled)
-VALUES (1, 'admin', '$2b$10$bYQYS65kDwAzSEmxJ7UGHu7/GjVBul1.w34T8HJ.8ZFvpP6kcip5G', 'admin@teambrain.com', true);
+INSERT IGNORE INTO sys_user (id, username, password, enabled)
+VALUES (1, 'admin', '$2b$10$bYQYS65kDwAzSEmxJ7UGHu7/GjVBul1.w34T8HJ.8ZFvpP6kcip5G', true);
 INSERT IGNORE INTO sys_user_role (user_id, role_id) VALUES (1, 1);
 INSERT IGNORE INTO sys_user_role (user_id, role_id) VALUES (1, 2);
 INSERT IGNORE INTO team (id, team_name, description, user_id)

@@ -35,7 +35,7 @@ public class DataInitializer implements CommandLineRunner {
         if (!userRepository.existsByUsername("admin")) {
             Role adminRole = roleRepository.findByName("ADMIN").get();
             Role userRole = roleRepository.findByName("USER").get();
-            User admin = new User("admin", passwordEncoder.encode("admin123"), "admin@teambrain.com");
+            User admin = new User("admin", passwordEncoder.encode("admin123"));
             admin.setRoles(Set.of(adminRole, userRole));
             userRepository.save(admin);
         }

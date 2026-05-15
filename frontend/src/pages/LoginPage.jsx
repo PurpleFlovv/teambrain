@@ -10,7 +10,6 @@ const LoginPage = () => {
   const [isRegister, setIsRegister] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -20,7 +19,7 @@ const LoginPage = () => {
     setError('');
     try {
       if (isRegister) {
-        await register(username, password, email);
+        await register(username, password);
       } else {
         await login(username, password);
       }
@@ -48,11 +47,6 @@ const LoginPage = () => {
             <FormField label="用户名">
               <Input type="text" value={username} onChange={e => setUsername(e.target.value)} required />
             </FormField>
-            {isRegister && (
-              <FormField label="邮箱">
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
-              </FormField>
-            )}
             <FormField label="密码">
               <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
             </FormField>

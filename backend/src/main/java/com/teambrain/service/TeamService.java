@@ -11,9 +11,7 @@ import com.teambrain.repository.UserRepository;
 import com.teambrain.repository.UserTeamRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class TeamService {
@@ -66,10 +64,31 @@ public class TeamService {
     }
 
     public List<Map<String, Object>> getMyTeams(Long userId) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        Set<Long> seen = new HashSet<>();
+
+        // Always include owned teams (team.user_id == userId)
+        List<Team> ownedTeams = teamRepository.findAll().stream()
+                .filter(t -> t.getUser().getId().equals(userId)).toList();
+        for (Team t : ownedTeams) {
+            seen.add(t.getId());
+            long nodeCount = teamNodeRepo.findByTeamId(t.getId()).size();
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", t.getId());
+            m.put("teamName", t.getTeamName());
+            m.put("description", t.getDescription() != null ? t.getDescription() : "");
+            m.put("ownerUsername", t.getUser().getUsername());
+            m.put("nodeCount", nodeCount);
+            m.put("isOwner", true);
+            result.add(m);
+        }
+
+        // Add joined teams from user_team
         List<UserTeam> memberships = userTeamRepo.findByUserId(userId);
-        return memberships.stream().map(ut -> {
+        for (UserTeam ut : memberships) {
+            if (!seen.add(ut.getTeamId())) continue;
             Team t = teamRepository.findById(ut.getTeamId()).orElse(null);
-            if (t == null) return null;
+            if (t == null) continue;
             long nodeCount = teamNodeRepo.findByTeamId(t.getId()).size();
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("id", t.getId());
@@ -78,21 +97,35 @@ public class TeamService {
             m.put("ownerUsername", t.getUser().getUsername());
             m.put("nodeCount", nodeCount);
             m.put("isOwner", t.getUser().getId().equals(userId));
-            return m;
-        }).filter(java.util.Objects::nonNull).toList();
+            result.add(m);
+        }
+        return result;
     }
 
     public List<Map<String, Object>> getMembers(Long teamId) {
         List<UserTeam> memberships = userTeamRepo.findByTeamId(teamId);
-        return memberships.stream().map(ut -> {
+        List<Map<String, Object>> result = new ArrayList<>();
+        Set<Long> seen = new HashSet<>();
+
+        // Always include team owner
+        Team team = teamRepository.findById(teamId).orElse(null);
+        if (team != null) {
+            User owner = team.getUser();
+            seen.add(owner.getId());
+            result.add(Map.of("id", owner.getId(), "username", owner.getUsername(), "isOwner", true));
+        }
+
+        // Add other members
+        for (UserTeam ut : memberships) {
+            if (!seen.add(ut.getUserId())) continue;
             User u = userRepo.findById(ut.getUserId()).orElse(null);
-            if (u == null) return null;
-            return Map.<String, Object>of(
-                "id", u.getId(),
-                "username", u.getUsername(),
+            if (u == null) continue;
+            result.add(Map.<String, Object>of(
+                "id", u.getId(), "username", u.getUsername(),
                 "isOwner", isOwner(teamId, u.getId())
-            );
-        }).filter(java.util.Objects::nonNull).toList();
+            ));
+        }
+        return result;
     }
 
     public void joinTeam(Long teamId, Long userId) {

@@ -10,14 +10,13 @@ import api from '../services/api';
 
 const Profile = () => {
   const { user, logout } = useAuth();
-  const [email, setEmail] = useState(user?.email || '');
   const [password, setPassword] = useState('');
   const [saving, setSaving] = useState(false);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put(`/admin/users/${user.id}`, { email, password: password || undefined });
+      await api.put(`/admin/users/${user.id}`, { password: password || undefined });
       toast.success('已保存');
     } catch (err) {
       toast.error('保存失败: ' + (err.response?.data?.message || err.message));
@@ -32,9 +31,6 @@ const Profile = () => {
       <GlassCard className="p-6 space-y-4">
         <FormField label="用户名">
           <Input value={user?.username || ''} disabled className="opacity-50 cursor-not-allowed" />
-        </FormField>
-        <FormField label="邮箱">
-          <Input value={email} onChange={e => setEmail(e.target.value)} />
         </FormField>
         <FormField label="新密码（留空不修改）">
           <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />

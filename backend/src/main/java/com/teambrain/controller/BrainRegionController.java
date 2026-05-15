@@ -3,9 +3,16 @@ package com.teambrain.controller;
 import com.teambrain.dto.BrainPointDto;
 import com.teambrain.dto.BrainRegionDto;
 import com.teambrain.entity.BrainRegion;
+import com.teambrain.entity.User;
+import com.teambrain.repository.UserRepository;
 import com.teambrain.service.BrainRegionService;
+import com.teambrain.service.TeamService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -14,9 +21,25 @@ import java.util.Map;
 public class BrainRegionController {
 
     private final BrainRegionService regionService;
+    private final TeamService teamService;
+    private final UserRepository userRepo;
 
-    public BrainRegionController(BrainRegionService regionService) {
+    public BrainRegionController(BrainRegionService regionService, TeamService teamService,
+                                   UserRepository userRepo) {
         this.regionService = regionService;
+        this.teamService = teamService;
+        this.userRepo = userRepo;
+    }
+
+    private boolean isAdmin(UserDetails ud) {
+        return ud != null && ud.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private void checkTeamOwner(Long teamId, UserDetails ud) {
+        if (!teamService.isOwnerOrAdmin(teamId, (ud != null ? ud.getUsername() : null), isAdmin(ud))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "无权操作此团队");
+        }
     }
 
     // ---- Brain visualization endpoints (no auth required) ----
@@ -31,7 +54,7 @@ public class BrainRegionController {
         return ResponseEntity.ok(regionService.getAllPoints(teamId));
     }
 
-    // ---- Team region CRUD endpoints ----
+    // ---- Team region CRUD endpoints (require team ownership) ----
 
     @GetMapping("/api/teams/{teamId}/regions")
     public ResponseEntity<List<BrainRegion>> list(@PathVariable Long teamId) {
@@ -39,7 +62,10 @@ public class BrainRegionController {
     }
 
     @PostMapping("/api/teams/{teamId}/regions")
-    public ResponseEntity<BrainRegion> create(@PathVariable Long teamId, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<BrainRegion> create(@PathVariable Long teamId,
+                                               @RequestBody Map<String, Object> body,
+                                               @AuthenticationPrincipal(expression = "principal") UserDetails ud) {
+        checkTeamOwner(teamId, ud);
         return ResponseEntity.ok(regionService.createRegion(teamId,
             (String) body.get("name"), (String) body.get("colorHex"),
             body.get("templateRegionId") != null ? ((Number) body.get("templateRegionId")).longValue() : null));
@@ -47,13 +73,17 @@ public class BrainRegionController {
 
     @PutMapping("/api/teams/{teamId}/regions/{id}")
     public ResponseEntity<BrainRegion> update(@PathVariable Long teamId, @PathVariable Long id,
-                                               @RequestBody Map<String, String> body) {
+                                               @RequestBody Map<String, String> body,
+                                               @AuthenticationPrincipal(expression = "principal") UserDetails ud) {
+        checkTeamOwner(teamId, ud);
         return ResponseEntity.ok(regionService.updateRegion(id, body.get("name"), body.get("colorHex")));
     }
 
     @DeleteMapping("/api/teams/{teamId}/regions/{id}")
     public ResponseEntity<?> delete(@PathVariable Long teamId, @PathVariable Long id,
-                                     @RequestBody Map<String, Object> body) {
+                                     @RequestBody Map<String, Object> body,
+                                     @AuthenticationPrincipal(expression = "principal") UserDetails ud) {
+        checkTeamOwner(teamId, ud);
         boolean unassigned = Boolean.TRUE.equals(body.get("setUnassigned"));
         Long reassignTo = body.containsKey("reassignToRegionId") ?
                 ((Number) body.get("reassignToRegionId")).longValue() : null;
@@ -62,7 +92,10 @@ public class BrainRegionController {
     }
 
     @PostMapping("/api/teams/{teamId}/regions/merge")
-    public ResponseEntity<?> merge(@PathVariable Long teamId, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> merge(@PathVariable Long teamId,
+                                    @RequestBody Map<String, Object> body,
+                                    @AuthenticationPrincipal(expression = "principal") UserDetails ud) {
+        checkTeamOwner(teamId, ud);
         @SuppressWarnings("unchecked")
         List<Long> sourceIds = ((List<Number>) body.get("sourceIds")).stream()
                 .map(Number::longValue).toList();
@@ -72,11 +105,15 @@ public class BrainRegionController {
     }
 
     @PutMapping("/api/teams/{teamId}/regions/reorder")
-    public ResponseEntity<?> reorder(@PathVariable Long teamId, @RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> reorder(@PathVariable Long teamId,
+                                      @RequestBody Map<String, Object> body,
+                                      @AuthenticationPrincipal(expression = "principal") UserDetails ud) {
+        checkTeamOwner(teamId, ud);
         @SuppressWarnings("unchecked")
         List<Long> ids = ((List<Number>) body.get("orderedIds")).stream()
                 .map(Number::longValue).toList();
         regionService.reorder(teamId, ids);
         return ResponseEntity.ok(Map.of("message", "已排序"));
     }
+
 }

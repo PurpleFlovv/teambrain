@@ -91,9 +91,4 @@ public class TeamNodeController {
         return ResponseEntity.ok(Map.of("message", "删除成功"));
     }
 
-    @GetMapping("/user/teams")
-    public ResponseEntity<List<Map<String, Object>>> getUserTeams(@AuthenticationPrincipal UserDetails ud) {
-        User user = userRepo.findByUsername(ud.getUsername()).orElseThrow();
-        return ResponseEntity.ok(teamService.getMyTeams(user.getId()));
-    }
 }

@@ -3,6 +3,7 @@
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/config/CorsConfig.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/config/DataInitializer.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/config/JwtAuthFilter.java
+/home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/config/MockDataSeeder.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/config/SecurityConfig.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/controller/AdminController.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/controller/AuthController.java
@@ -28,6 +29,8 @@
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/entity/Team.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/entity/TeamNode.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/entity/User.java
+/home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/entity/UserTeam.java
+/home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/entity/UserTeamId.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/repository/AuditLogRepository.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/repository/BrainPointRepository.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/repository/BrainRegionRepository.java
@@ -37,6 +40,7 @@
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/repository/TeamNodeRepository.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/repository/TeamRepository.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/repository/UserRepository.java
+/home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/repository/UserTeamRepository.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/service/AdminService.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/service/AuthService.java
 /home/mpt/projects/TeamBrain/backend/src/main/java/com/teambrain/service/BrainRegionService.java

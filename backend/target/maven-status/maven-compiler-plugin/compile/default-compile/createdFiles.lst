@@ -9,6 +9,7 @@ com/teambrain/dto/RegisterRequest.class
 com/teambrain/controller/ConnectionTypeController.class
 com/teambrain/entity/BrainRegion.class
 com/teambrain/entity/Team.class
+com/teambrain/entity/UserTeamId.class
 com/teambrain/repository/NodeConnectionRepository.class
 com/teambrain/controller/TeamNodeController.class
 com/teambrain/entity/TeamNode$NodeType.class
@@ -29,6 +30,7 @@ com/teambrain/service/AuthService.class
 com/teambrain/entity/Role.class
 com/teambrain/config/SecurityConfig.class
 com/teambrain/entity/AuditLog.class
+com/teambrain/entity/UserTeam.class
 com/teambrain/config/DataInitializer.class
 com/teambrain/repository/UserRepository.class
 com/teambrain/dto/BrainPointDto.class
@@ -42,7 +44,9 @@ com/teambrain/dto/TeamNodeDto.class
 com/teambrain/service/TeamService.class
 com/teambrain/controller/AuthController.class
 com/teambrain/dto/LoginResponse.class
+com/teambrain/repository/UserTeamRepository.class
 com/teambrain/repository/TeamRepository.class
+com/teambrain/config/MockDataSeeder.class
 com/teambrain/repository/BrainRegionRepository.class
 com/teambrain/repository/RoleRepository.class
 com/teambrain/entity/ConnectionType.class

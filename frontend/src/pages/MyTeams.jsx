@@ -12,7 +12,7 @@ const MyTeams = () => {
   const [teams, setTeams] = useState([]);
 
   useEffect(() => {
-    api.get('/user/teams').then(r => setTeams(r.data)).catch(() => {});
+    api.get('/teams/my').then(r => setTeams(r.data)).catch(() => {});
   }, []);
 
   return (
