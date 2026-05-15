@@ -2,6 +2,9 @@ package com.teambrain.config;
 
 import com.teambrain.entity.*;
 import com.teambrain.repository.*;
+
+import java.util.ArrayList;
+import java.util.List;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,14 +22,15 @@ public class MockDataSeeder implements CommandLineRunner {
     private final TeamNodeRepository nodeRepo;
     private final NodeConnectionRepository connRepo;
     private final BrainRegionRepository regionRepo;
+    private final UserTeamRepository userTeamRepo;
     private final PasswordEncoder encoder;
 
     public MockDataSeeder(UserRepository ur, RoleRepository rr, TeamRepository tr,
                           TeamNodeRepository nr, NodeConnectionRepository cr,
-                          BrainRegionRepository br, PasswordEncoder pe) {
+                          BrainRegionRepository br, UserTeamRepository utr, PasswordEncoder pe) {
         this.userRepo = ur; this.roleRepo = rr; this.teamRepo = tr;
         this.nodeRepo = nr; this.connRepo = cr;
-        this.regionRepo = br; this.encoder = pe;
+        this.regionRepo = br; this.userTeamRepo = utr; this.encoder = pe;
     }
 
     @Override
@@ -100,6 +104,9 @@ public class MockDataSeeder implements CommandLineRunner {
              {"碳排放追踪","PROJECT"},{"司机App重构","PROJECT"},{"年度客户大会","PROJECT"}},
         };
 
+        List<User> users = new ArrayList<>();
+        List<Team> teams = new ArrayList<>();
+
         int uid = 10;
         for (int ti = 0; ti < teamData.length; ti++) {
             String[] td = teamData[ti];
@@ -107,9 +114,11 @@ public class MockDataSeeder implements CommandLineRunner {
             u.setEnabled(true);
             u.setRoles(Set.of(userRole));
             u = userRepo.save(u);
+            users.add(u);
 
             Team t = new Team(td[0], td[1], u);
             t = teamRepo.save(t);
+            teams.add(t);
 
             // Copy brain regions
             List<BrainRegion> templates = regionRepo.findByTeamIsNullOrderBySortOrderAsc();
@@ -157,6 +166,24 @@ public class MockDataSeeder implements CommandLineRunner {
             }
             uid++;
         }
+
+        // Cross-memberships using actual IDs
+        if (teams.size() >= 8 && users.size() >= 8) {
+            // Each user joins one other team (next in the list)
+            for (int i = 0; i < users.size(); i++) {
+                User member = users.get(i);
+                Team joinTeam = teams.get((i + 1) % teams.size());
+                // Don't join own team
+                if (!joinTeam.getUser().getId().equals(member.getId())) {
+                    userTeamRepo.save(new UserTeam(member.getId(), joinTeam.getId()));
+                }
+            }
+            // Also: first user joins team 1 (影视飓风)
+            if (!users.isEmpty()) {
+                userTeamRepo.save(new UserTeam(users.get(0).getId(), 1L));
+            }
+        }
+
         System.out.println("Mock data seeded: " + teamData.length + " teams, " + uid + " users");
     }
 }

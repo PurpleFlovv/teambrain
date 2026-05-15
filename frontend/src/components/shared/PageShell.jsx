@@ -21,7 +21,7 @@ const PageShell = ({ loading, error, maxWidth = 'max-w-4xl', className, children
   }
 
   return (
-    <div className={cn('p-6 mx-auto', maxWidth, className)}>
+    <div className={cn('p-6 mx-auto h-full overflow-y-auto scrollbar-glass', maxWidth, className)}>
       {children}
     </div>
   );
