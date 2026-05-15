@@ -6,11 +6,26 @@
 
 ## 一、概述
 
-新增用户-团队归属关系（UserTeam 关联表），实现多用户可加入同一团队。ADMIN 和 TEAM_ADMIN 两者均可使用管理后台，但权限范围不同。导航栏新增"关于"页面展示系统概述。我的团队页面仅显示已加入团队，子页面为只读展示。
+新增用户-团队归属关系（UserTeam 关联表），实现多用户可加入同一团队。ADMIN 和 TEAM_ADMIN 两者均可使用管理后台，但权限范围不同。导航栏新增"关于"页面展示系统概述。我的团队页面仅显示已加入团队，子页面为只读展示。**新用户注册后不自动创建团队**，需通过团队广场加入。
 
 ---
 
-## 二、多团队归属处理
+## 二、注册流程变更
+
+### 2.1 取消自动创建团队
+
+- `AuthService.register()` 移除 `teamRepository.save(...)` 和 `brainRegionService.copyTemplatesForTeam(...)`
+- `AdminService.createUser()` 移除自动创建团队
+- `DataInitializer` 保持不变（admin 仍需影视飓风团队作为演示数据）
+- `MockDataSeeder` 保持不变（模拟用户需要团队）
+
+### 2.2 注册后流程
+
+新用户注册 → 登录 → `teamIds = []` → 首页显示默认影视飓风（teamId=1）→ 引导用户去团队广场加入团队。
+
+---
+
+## 三、多团队归属处理
 
 ### 2.1 JWT & AuthContext
 
@@ -189,7 +204,29 @@ TeamBrain    我的团队  团队广场  个人信息  关于  [管理]
 
 使用 PageShell + GlassCard，深色背景，居中布局。
 
-### 6.2 我的团队页面 (MyTeams.jsx)
+### 6.2 滚动与滚动条风格
+
+MyTeams、TeamSquare、JoinTeam 等列表页需支持内容溢出时下滑：
+
+- 页面容器 `overflow-y-auto` + `h-full`
+- 滚动条风格与 Cosmic Glass 一致（`scrollbar-thin` + 暗色半透明）：
+
+```css
+/* 在 index.css 中添加 */
+.scrollbar-glass::-webkit-scrollbar { width: 6px; }
+.scrollbar-glass::-webkit-scrollbar-track { background: transparent; }
+.scrollbar-glass::-webkit-scrollbar-thumb { 
+  background: rgba(148, 163, 184, 0.3); 
+  border-radius: 3px;
+}
+.scrollbar-glass::-webkit-scrollbar-thumb:hover { 
+  background: rgba(148, 163, 184, 0.5);
+}
+```
+
+应用 `scrollbar-glass` 类到内容溢出容器。
+
+### 6.3 我的团队页面 (MyTeams.jsx)
 
 ```
 ┌──────────────────────────────────────────┐
@@ -207,7 +244,7 @@ TeamBrain    我的团队  团队广场  个人信息  关于  [管理]
 - 卡片点击 → `/#/my-teams/:id`
 - 若无团队 → 提示"暂无加入的团队"，按钮跳转团队广场
 
-### 6.3 我的团队子页面 (MyTeamDetail.jsx)
+### 6.4 我的团队子页面 (MyTeamDetail.jsx)
 
 **所有角色（ADMIN/TEAM_ADMIN/USER）均为只读**：
 
@@ -276,7 +313,8 @@ AdminController 的团队端点增加 TEAM_ADMIN 访问：
 | 后端 | `entity/UserTeamId.java` | 新建（复合主键类） |
 | 后端 | `repository/UserTeamRepository.java` | 新建 |
 | 后端 | `dto/LoginResponse.java` | 修改：teamId → teamIds, +ownedTeamId |
-| 后端 | `service/AuthService.java` | 修改：登录时查 user_team 填充 teamIds |
+| 后端 | `service/AuthService.java` | 修改：登录查 user_team，register 移除自动创团队 |
+| 后端 | `service/AdminService.java` | 修改：createUser 移除自动创团队 |
 | 后端 | `service/TeamService.java` | 修改：加成员管理 + isOwner/canEdit |
 | 后端 | `service/AdminService.java` | 修改：getAllUsers 加 ownedTeamName/teamCount |
 | 后端 | `controller/TeamController.java` | 修改：加成员/我的团队端点 |
@@ -288,6 +326,8 @@ AdminController 的团队端点增加 TEAM_ADMIN 访问：
 | 前端 | `App.jsx` | 修改：加 #/about 路由 |
 | 前端 | `pages/About.jsx` | 新建 |
 | 前端 | `pages/Index.jsx` | 修改：默认团队逻辑（owner优先→首个加入→默认1） |
-| 前端 | `pages/MyTeams.jsx` | 修改：调用 /user/teams |
+| 前端 | `pages/MyTeams.jsx` | 修改：调用 /user/teams, overflow-y-auto |
+| 前端 | `pages/TeamSquare.jsx` | 修改：overflow-y-auto |
 | 前端 | `pages/MyTeamDetail.jsx` | 修改：只读视图+成员列表 |
-| 前端 | `pages/AdminPage.jsx` | 修改：用户列表加团队数列
+| 前端 | `pages/AdminPage.jsx` | 修改：用户列表加团队数列 |
+| 前端 | `src/index.css` | 修改：加 .scrollbar-glass 样式 |
