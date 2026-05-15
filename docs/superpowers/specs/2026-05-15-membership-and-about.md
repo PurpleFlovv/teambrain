@@ -1,0 +1,216 @@
+# TeamBrain 用户团队归属 & 关于页面
+
+**日期**: 2026-05-15 | **基于**: 2026-05-15-teambrain-system-design.md
+
+---
+
+## 一、概述
+
+新增用户-团队归属关系（UserTeam 关联表），实现多用户可加入同一团队。ADMIN 和 TEAM_ADMIN 两者均可使用管理后台，但权限范围不同。导航栏新增"关于"页面展示系统概述。我的团队页面仅显示已加入团队，子页面为只读展示。
+
+---
+
+## 二、权限模型
+
+| 角色 | 团队可见范围 | 编辑节点/脑区 | 管理成员 | 管理全局 |
+|------|:----------:|:----------:|:-------:|:------:|
+| **ADMIN** | 全部 | ✅ | ✅ | ✅ |
+| **TEAM_ADMIN** | 本人拥有的 | ✅ | ✅ | — |
+| **USER** | 已加入的 | — | — | — |
+
+- ADMIN 不加入任何团队，可查看所有团队
+- TEAM_ADMIN = 团队所有者（team.user_id == currentUser.id）
+- USER 只能查看已加入团队的数据，无编辑权限
+
+---
+
+## 三、数据模型变更
+
+### 3.1 新增 `user_team` 表
+
+| 列 | 类型 | 说明 |
+|----|------|------|
+| user_id | BIGINT FK → sys_user | 成员 |
+| team_id | BIGINT FK → team | 团队 |
+| joined_at | TIMESTAMP NOT NULL DEFAULT NOW() | 加入时间 |
+
+主键：(user_id, team_id)
+
+### 3.2 新增 UserTeam 实体
+
+```java
+@Entity
+@Table(name = "user_team")
+@IdClass(UserTeamId.class)  // 复合主键
+public class UserTeam {
+    @Id private Long userId;
+    @Id private Long teamId;
+    private LocalDateTime joinedAt = LocalDateTime.now();
+}
+```
+
+### 3.3 依赖关系（无循环引用）
+
+```
+UserTeamRepository
+  ├── finds teams by userId   → GET /api/user/teams
+  ├── finds users by teamId   → GET /api/teams/{id}/members
+  ├── inserts                 → POST /api/teams/{id}/join
+  └── deletes                 → DELETE /api/teams/{id}/leave
+                                 DELETE /api/teams/{id}/members/{userId}
+
+TeamService (修改)
+  ├── 注入 UserTeamRepository
+  ├── getMyTeams(userId)       → user_team join 查询
+  └── isOwner(teamId, userId)  → 复用现有 team.user_id 比对
+
+MyTeams 页面 (修改)
+  └── 调用 GET /api/user/teams (仅返回已加入的团队)
+
+MyTeamDetail 页面 (修改)
+  └── 调用 GET /api/teams/{id}/members (显示成员列表)
+```
+
+User/Team 实体**不**添加 JPA @OneToMany/@ManyToMany 映射到 UserTeam，避免双向依赖。所有查询通过 UserTeamRepository。
+
+### 3.4 种子数据调整
+
+MockDataSeeder 中 ADMId2N 用户的 `user_team` 对应关系：
+- user10 作为 星辰科技 的 owner（team.user_id = user10.id）→ 自动有 TEAM_ADMIN 权限
+- user11-17 各为其所属团队的 owner → TEAM_ADMIN
+- 额外：user11 加入 星辰科技（INSERT user_team），user12 加入 星辰科技。其余团队的成员类似。
+
+---
+
+## 四、路由
+
+| 路径 | 页面 | 权限 |
+|------|------|------|
+| `/#/login` | 登录/注册 | 公开 |
+| `/#/` | 大脑首页（3D 可视化 + 团队切换） | 需登录 |
+| `/#/my-teams` | **我的团队**（仅已加入） | 需登录 |
+| `/#/my-teams/:id` | **团队详情**（只读：名称+描述+所有者+成员+3D大脑） | 需登录 |
+| `/#/teams` | 团队广场（所有团队） | 需登录 |
+| `/#/join-team` | 加入团队 | 需登录 |
+| `/#/profile` | 个人信息 | 需登录 |
+| `/#/about` | **关于**（系统概述） | 公开 |
+| `/#/admin` | 管理仪表盘 | ADMIN |
+| `/#/admin/users` | 用户管理 | ADMIN |
+| `/#/admin/teams` | 团队管理 | ADMIN |
+| `/#/admin/teams/:id` | 团队详情（3D 大脑+节点列表） | ADMIN |
+| `/#/admin/teams/:id/edit` | 团队编辑（三个选项卡） | ADMIN 或 TEAM_ADMIN |
+| `/#/admin/logs` | 操作日志 | ADMIN |
+
+---
+
+## 五、导航栏
+
+```
+TeamBrain    我的团队  团队广场  个人信息  关于  [管理]
+```
+
+- "关于"放在个人信息后面
+- "[管理]"仅 ADMIN 可见
+
+---
+
+## 六、页面设计
+
+### 6.1 关于页面 (About.jsx)
+
+```
+┌──────────────────────────────────────────┐
+│  TeamBrain                               │
+│                                          │
+│  TeamBrain 是一个组织架构可视化平台。       │
+│  将团队的成员和项目映射到 3D 大脑模型的     │
+│  不同脑区，直观展示组织结构和协作关系。      │
+│  支持多团队、角色权限、自动连接策略和       │
+│  拖拽交互。                               │
+│                                          │
+│  技术栈：Spring Boot + React + Three.js   │
+└──────────────────────────────────────────┘
+```
+
+使用 PageShell + GlassCard，深色背景，居中布局。
+
+### 6.2 我的团队页面 (MyTeams.jsx)
+
+```
+┌──────────────────────────────────────────┐
+│  我的团队                                 │
+│                                          │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐  │
+│  │ 星辰科技  │ │ 云帆教育  │ │           │  │
+│  │ AI数字.. │ │ 在线编程..│ │           │  │
+│  │ 12 节点  │ │ 9 节点   │ │           │  │
+│  └──────────┘ └──────────┘ └──────────┘  │
+└──────────────────────────────────────────┘
+```
+
+- 调用 `GET /api/user/teams` 获取当前用户已加入的团队
+- 卡片点击 → `/#/my-teams/:id`
+- 若无团队 → 提示"暂无加入的团队"，按钮跳转团队广场
+
+### 6.3 我的团队子页面 (MyTeamDetail.jsx)
+
+**所有角色（ADMIN/TEAM_ADMIN/USER）均为只读**：
+
+```
+┌──────────────────────────────────────────┐
+│  ← 我的团队                               │
+│                                          │
+│  星辰科技                                 │
+│  AI驱动的企业数字化解决方案提供商            │
+│  所有者：user10                            │
+│                                          │
+│  团队成员（3人）：                          │
+│    user10   user11   user12              │
+│                                          │
+│  ───────────────────────────────         │
+│                                          │
+│       3D 大脑可视化 (BrainPointCloud)      │
+│       只读，无编辑选项卡                   │
+└──────────────────────────────────────────┘
+```
+
+编辑功能仅通过 `/#/admin/teams/:id/edit`（三个选项卡），与 MyTeamDetail 完全解耦。
+
+---
+
+## 七、API
+
+### 7.1 新增端点
+
+| 方法 | 路径 | 鉴权 | 实现 |
+|------|------|------|------|
+| GET | `/api/user/teams` | 需登录 | TeamService.getMyTeams(username) → UserTeamRepository |
+| GET | `/api/teams/{id}/members` | 需登录 | TeamService.getMembers(teamId) → UserTeamRepository |
+| POST | `/api/teams/{id}/join` | 需登录 | TeamService.joinTeam(teamId, username) |
+| DELETE | `/api/teams/{id}/leave` | 需登录 | TeamService.leaveTeam(teamId, username) |
+| DELETE | `/api/teams/{id}/members/{userId}` | owner/admin | TeamService.removeMember(teamId, userId, adminUsername) |
+
+### 7.2 权限调整
+
+AdminController 的团队端点增加 TEAM_ADMIN 访问：
+- `GET /api/admin/teams/{id}/nodes` — 若当前用户为 team owner，允许访问
+- `PUT /api/admin/teams/{id}` — 同上
+
+---
+
+## 八、涉及文件
+
+| 层 | 文件 | 操作 |
+|----|------|------|
+| 后端 | `entity/UserTeam.java` | 新建 |
+| 后端 | `entity/UserTeamId.java` | 新建（复合主键类） |
+| 后端 | `repository/UserTeamRepository.java` | 新建 |
+| 后端 | `service/TeamService.java` | 修改：加成员管理方法 |
+| 后端 | `controller/TeamController.java` | 修改：加成员/我的团队端点 |
+| 后端 | `config/MockDataSeeder.java` | 修改：user_team 关联数据 |
+| 后端 | `config/SecurityConfig.java` | 修改：/api/about 公开 |
+| 前端 | `components/Navbar.jsx` | 修改：加"关于" |
+| 前端 | `App.jsx` | 修改：加 #/about 路由 |
+| 前端 | `pages/About.jsx` | 新建 |
+| 前端 | `pages/MyTeams.jsx` | 修改：调用 /user/teams |
+| 前端 | `pages/MyTeamDetail.jsx` | 修改：只读视图+成员列表 |
