@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST}:${MYSQL_PORT}/teambrain?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&ssl-mode=REQUIRED
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+server:
+  port: ${PORT:8080}
