@@ -1,0 +1,22 @@
+# Aiven SSL keys (ca.pem is public cert, allowed)
+*.key
+!ca.pem
+
+# Java
+backend/target/
+*.class
+*.jar
+!*.jar.original
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
