@@ -1,7 +1,7 @@
 # Stage 1: Build
 FROM eclipse-temurin:21-jdk AS builder
 
-# Install Maven
+# Install Maven and Node.js
 RUN apt-get update && apt-get install -y maven nodejs npm && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -23,14 +23,6 @@ RUN mvn clean package -DskipTests
 # Stage 2: Runtime
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-
-# Copy Aiven CA cert and import into truststore
-COPY ca.pem /app/ca.pem
-RUN keytool -importcert -noprompt -trustcacerts \
-    -alias aiven-ca \
-    -file /app/ca.pem \
-    -keystore $JAVA_HOME/lib/security/cacerts \
-    -storepass changeit
 
 # Copy built JAR
 COPY --from=builder /build/backend/target/teambrain-0.0.1.jar app.jar

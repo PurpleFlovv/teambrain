@@ -1,14 +1,14 @@
 spring:
   datasource:
-    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:3306}/teambrain?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&ssl-mode=REQUIRED&connectTimeout=30000
-    username: ${MYSQL_USER:teambrain}
-    password: ${MYSQL_PASSWORD:}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://${PG_HOST:localhost}:${PG_PORT:5432}/${PG_DATABASE:teambrain}
+    username: ${PG_USER:teambrain}
+    password: ${PG_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
     hikari:
       initialization-fail-timeout: 60000
       connection-timeout: 30000
   jpa:
-    database-platform: org.hibernate.dialect.MySQLDialect
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
       ddl-auto: update
     show-sql: false
