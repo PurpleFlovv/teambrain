@@ -94,3 +94,11 @@ INSERT INTO node_connection (id, team_id, from_node_id, to_node_id, target_type,
 (27, 1, 21, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6),
 (28, 1, 22, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6),
 (29, 1, 23, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6) ON CONFLICT DO NOTHING;
+
+-- 序列修复：data.sql 插入显式 ID，必须将序列推到当前最大值之后
+SELECT setval('sys_user_id_seq', COALESCE((SELECT MAX(id) FROM sys_user), 1));
+SELECT setval('sys_role_id_seq', COALESCE((SELECT MAX(id) FROM sys_role), 1));
+SELECT setval('team_id_seq', COALESCE((SELECT MAX(id) FROM team), 1));
+SELECT setval('team_node_id_seq', COALESCE((SELECT MAX(id) FROM team_node), 1));
+SELECT setval('brain_region_id_seq', COALESCE((SELECT MAX(id) FROM brain_region), 1));
+SELECT setval('node_connection_id_seq', COALESCE((SELECT MAX(id) FROM node_connection), 1));
