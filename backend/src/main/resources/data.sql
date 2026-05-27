@@ -1,7 +1,7 @@
 -- 角色初始化
-INSERT INTO sys_role (id, name) VALUES (1, 'USER') ON CONFLICT DO NOTHING;
-INSERT INTO sys_role (id, name) VALUES (2, 'ADMIN') ON CONFLICT DO NOTHING;
-INSERT INTO sys_role (id, name) VALUES (3, 'TEAM_ADMIN') ON CONFLICT DO NOTHING;
+INSERT INTO sys_role (id, name) VALUES (1, 'USER') ON CONFLICT (id) DO NOTHING;
+INSERT INTO sys_role (id, name) VALUES (2, 'ADMIN') ON CONFLICT (id) DO NOTHING;
+INSERT INTO sys_role (id, name) VALUES (3, 'TEAM_ADMIN') ON CONFLICT (id) DO NOTHING;
 
 -- 脑区初始化
 INSERT INTO brain_region (id, name, color_hex, sort_order, team_id, template_region_id) VALUES
@@ -10,22 +10,22 @@ INSERT INTO brain_region (id, name, color_hex, sort_order, team_id, template_reg
 (3, '顶叶', '#AA44FF', 3, NULL, NULL),
 (4, '颞叶', '#44FFAA', 4, NULL, NULL),
 (5, '枕叶', '#FF8844', 5, NULL, NULL),
-(6, '小脑/脑干', '#FF4477', 6, NULL, NULL) ON CONFLICT DO NOTHING;
+(6, '小脑/脑干', '#FF4477', 6, NULL, NULL) ON CONFLICT (id) DO NOTHING;
 
 -- 管理员账号 admin / admin123
 INSERT INTO sys_user (id, username, password, enabled)
-VALUES (1, 'admin', '$2b$10$bYQYS65kDwAzSEmxJ7UGHu7/GjVBul1.w34T8HJ.8ZFvpP6kcip5G', true) ON CONFLICT DO NOTHING;
-INSERT INTO sys_user_role (user_id, role_id) VALUES (1, 1) ON CONFLICT DO NOTHING;
-INSERT INTO sys_user_role (user_id, role_id) VALUES (1, 2) ON CONFLICT DO NOTHING;
+VALUES (1, 'admin', '$2b$10$bYQYS65kDwAzSEmxJ7UGHu7/GjVBul1.w34T8HJ.8ZFvpP6kcip5G', true) ON CONFLICT (id) DO NOTHING;
+INSERT INTO sys_user_role (user_id, role_id) VALUES (1, 1) ON CONFLICT (user_id, role_id) DO NOTHING;
+INSERT INTO sys_user_role (user_id, role_id) VALUES (1, 2) ON CONFLICT (user_id, role_id) DO NOTHING;
 INSERT INTO team (id, team_name, description, user_id)
-VALUES (1, '影视飓风', '无限进步 | 全网粉丝2800万+', 1) ON CONFLICT DO NOTHING;
+VALUES (1, '影视飓风', '无限进步 | 全网粉丝2800万+', 1) ON CONFLICT (id) DO NOTHING;
 
 -- 影视飓风团队节点
 -- 前额叶: 核心管理层
 INSERT INTO team_node (id, team_id, brain_region_id, name, description, node_type) VALUES
 (1, 1, 1, 'Tim（潘天鸿）', '影视飓风创始人，频道主理人，负责整体方向与内容创意', 'MEMBER'),
 (2, 1, 1, 'Owen', '联合创始人，技术总监，负责硬件与特效技术支持', 'MEMBER'),
-(3, 1, 1, '运营组', '内容发布、商务对接、社群管理', 'MEMBER') ON CONFLICT DO NOTHING;
+(3, 1, 1, '运营组', '内容发布、商务对接、社群管理', 'MEMBER') ON CONFLICT (id) DO NOTHING;
 
 -- 额叶: 创意策划与内容产出
 INSERT INTO team_node (id, team_id, brain_region_id, name, description, node_type) VALUES
@@ -37,31 +37,31 @@ INSERT INTO team_node (id, team_id, brain_region_id, name, description, node_typ
 (9, 1, 2, '《飓多多》', '轻松有趣的短内容，展现幕后日常', 'PROJECT'),
 (10, 1, 2, '《亿点点不一样》', '旗下子账号，频频出现爆款内容', 'PROJECT'),
 (11, 1, 2, '百大UP主创业故事', '系列纪录片，分享管理心路', 'PROJECT'),
-(12, 1, 2, 'MOMA猛玛代言', '2024年达成品牌代言合作', 'PROJECT') ON CONFLICT DO NOTHING;
+(12, 1, 2, 'MOMA猛玛代言', '2024年达成品牌代言合作', 'PROJECT') ON CONFLICT (id) DO NOTHING;
 
 -- 顶叶: 技术执行
 INSERT INTO team_node (id, team_id, brain_region_id, name, description, node_type) VALUES
 (13, 1, 3, '摄影组', '负责所有视频的拍摄、灯光、构图', 'MEMBER'),
 (14, 1, 3, '剪辑组', '后期剪辑、调色、音效', 'MEMBER'),
 (15, 1, 3, '《测评》系列', '摄影器材、数码产品深度评测', 'PROJECT'),
-(16, 1, 3, '双推流直播方案', '5G条件下的高画质、低延迟直播技术', 'PROJECT') ON CONFLICT DO NOTHING;
+(16, 1, 3, '双推流直播方案', '5G条件下的高画质、低延迟直播技术', 'PROJECT') ON CONFLICT (id) DO NOTHING;
 
 -- 颞叶: 商务运营
 INSERT INTO team_node (id, team_id, brain_region_id, name, description, node_type) VALUES
 (17, 1, 4, '商务组', '品牌合作、广告对接', 'MEMBER'),
 (18, 1, 4, '电商组', '自营产品、供应链管理', 'MEMBER'),
 (19, 1, 4, 'B2B出海平台', '2025年入驻阿里国际站', 'PROJECT'),
-(20, 1, 4, '合作品牌', 'OPPO、英雄联盟、守望先锋、NOMO等', 'PROJECT') ON CONFLICT DO NOTHING;
+(20, 1, 4, '合作品牌', 'OPPO、英雄联盟、守望先锋、NOMO等', 'PROJECT') ON CONFLICT (id) DO NOTHING;
 
 -- 枕叶: 品牌与愿景
 INSERT INTO team_node (id, team_id, brain_region_id, name, description, node_type) VALUES
 (21, 1, 5, '年度iPhone福利', '连续多年为全体员工换新iPhone', 'PROJECT'),
 (22, 1, 5, '公司规模', '2024年营收过亿，全网粉丝超2800万', 'PROJECT'),
-(23, 1, 5, '杭州总部', '位于杭州市余杭区良渚街道', 'PROJECT') ON CONFLICT DO NOTHING;
+(23, 1, 5, '杭州总部', '位于杭州市余杭区良渚街道', 'PROJECT') ON CONFLICT (id) DO NOTHING;
 
 -- 小脑/脑干: 企业文化
 INSERT INTO team_node (id, team_id, brain_region_id, name, description, node_type) VALUES
-(24, 1, 6, '企业文化', '口号：无限进步', 'MEMBER') ON CONFLICT DO NOTHING;
+(24, 1, 6, '企业文化', '口号：无限进步', 'MEMBER') ON CONFLICT (id) DO NOTHING;
 
 -- 连接规则
 INSERT INTO node_connection (id, team_id, from_node_id, to_node_id, target_type, connection_type, color_hex, line_width, flow_color_hex, opacity) VALUES
@@ -93,4 +93,4 @@ INSERT INTO node_connection (id, team_id, from_node_id, to_node_id, target_type,
 (26, 1, 24, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6),
 (27, 1, 21, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6),
 (28, 1, 22, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6),
-(29, 1, 23, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6) ON CONFLICT DO NOTHING;
+(29, 1, 23, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6) ON CONFLICT (id) DO NOTHING;
