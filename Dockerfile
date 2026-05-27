@@ -1,5 +1,9 @@
 # Stage 1: Build
 FROM eclipse-temurin:21-jdk AS builder
+
+# Install Maven
+RUN apt-get update && apt-get install -y maven nodejs npm && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /build
 
 # Build frontend
@@ -7,11 +11,14 @@ COPY frontend/ frontend/
 WORKDIR /build/frontend
 RUN npm install && npm run build
 
-# Build backend
+# Build backend with frontend static baked in
 WORKDIR /build
 COPY backend/ backend/
+RUN rm -rf backend/src/main/resources/static/* && \
+    mkdir -p backend/src/main/resources/static && \
+    cp -r frontend/dist/* backend/src/main/resources/static/
 WORKDIR /build/backend
-RUN ./mvnw clean package -DskipTests 2>/dev/null || mvn clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # Stage 2: Runtime
 FROM eclipse-temurin:21-jre
@@ -27,9 +34,6 @@ RUN keytool -importcert -noprompt -trustcacerts \
 
 # Copy built JAR
 COPY --from=builder /build/backend/target/teambrain-0.0.1.jar app.jar
-
-# Copy frontend static into JAR (mounted as overlay at runtime via spring.web.resources.static-locations)
-# The frontend is already embedded in the JAR by build.sh equivalent in Stage 1
 
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
