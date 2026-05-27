@@ -8,6 +8,7 @@ spring:
       initialization-fail-timeout: 60000
       connection-timeout: 30000
   jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
     hibernate:
       ddl-auto: update
     show-sql: false
