@@ -35,7 +35,7 @@ public class MockDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (userRepo.count() > 3) return;
+        if (userRepo.existsByUsername("user10")) return;
 
         Role userRole = roleRepo.findByName("USER").orElseThrow();
         String pw = encoder.encode("123456");
@@ -167,20 +167,21 @@ public class MockDataSeeder implements CommandLineRunner {
             uid++;
         }
 
-        // Cross-memberships using actual IDs
-        if (teams.size() >= 8 && users.size() >= 8) {
-            // Each user joins one other team (next in the list)
-            for (int i = 0; i < users.size(); i++) {
-                User member = users.get(i);
-                Team joinTeam = teams.get((i + 1) % teams.size());
-                // Don't join own team
-                if (!joinTeam.getUser().getId().equals(member.getId())) {
+        // Rich cross-memberships: each user joins 3-4 other teams
+        for (int i = 0; i < users.size(); i++) {
+            User member = users.get(i);
+            Set<Long> joined = new HashSet<>();
+            joined.add(teams.get(i).getId()); // skip own team
+            // Join next 3 teams in the list
+            for (int j = 1; j <= 3 && j < teams.size(); j++) {
+                Team joinTeam = teams.get((i + j) % teams.size());
+                if (joined.add(joinTeam.getId())) {
                     userTeamRepo.save(new UserTeam(member.getId(), joinTeam.getId()));
                 }
             }
-            // Also: first user joins team 1 (影视飓风)
-            if (!users.isEmpty()) {
-                userTeamRepo.save(new UserTeam(users.get(0).getId(), 1L));
+            // First 3 users also join team 1 (影视飓风)
+            if (i < 3) {
+                userTeamRepo.save(new UserTeam(member.getId(), 1L));
             }
         }
 
