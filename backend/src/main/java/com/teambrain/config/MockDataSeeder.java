@@ -35,7 +35,16 @@ public class MockDataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (userRepo.existsByUsername("user10")) return;
+        boolean allExist = true;
+        for (int i = 10; i <= 17; i++) {
+            if (!userRepo.existsByUsername("user" + i)) { allExist = false; break; }
+        }
+        if (allExist) return;
+
+        // Clean up partial mock data before re-seeding
+        for (int i = 10; i <= 17; i++) {
+            userRepo.findByUsername("user" + i).ifPresent(u -> userRepo.delete(u));
+        }
 
         Role userRole = roleRepo.findByName("USER").orElseThrow();
         String pw = encoder.encode("123456");
@@ -181,7 +190,7 @@ public class MockDataSeeder implements CommandLineRunner {
             }
             // First 3 users also join team 1 (影视飓风)
             if (i < 3) {
-                userTeamRepo.save(new UserTeam(member.getId(), 1L));
+                try { userTeamRepo.save(new UserTeam(member.getId(), 1L)); } catch (Exception ignored) {}
             }
         }
 
