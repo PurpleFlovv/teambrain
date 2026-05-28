@@ -21,7 +21,7 @@ const Navbar = () => {
         <button onClick={() => navigate('/teams')} className={linkClass}>团队广场</button>
         <button onClick={() => navigate('/profile')} className={linkClass}>个人信息</button>
         <button onClick={() => navigate('/about')} className={linkClass}>关于</button>
-        {user?.roles?.includes('ADMIN') && (
+        {(user?.roles?.includes('ADMIN') || user?.roles?.includes('TEAM_ADMIN')) && (
           <button onClick={() => navigate('/admin')} className={cn(linkClass, 'border border-[var(--glass-border)] ml-2')}>
             管理
           </button>

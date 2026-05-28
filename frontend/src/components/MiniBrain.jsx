@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-const MiniBrain = ({ brainPoints, regions, onNodeDrop, width = 400, height = 400 }) => {
+const MiniBrain = ({ brainPoints, regions, onNodeDrop, dragNodeRef, width = 400, height = 400 }) => {
   const mountRef = useRef(null);
   const spheresRef = useRef([]);
   const cameraRef = useRef(null);
@@ -93,7 +93,7 @@ const MiniBrain = ({ brainPoints, regions, onNodeDrop, width = 400, height = 400
 
   const handleDrop = (e) => {
     e.preventDefault();
-    const nodeId = parseInt(e.dataTransfer.getData('nodeId'));
+    const nodeId = dragNodeRef?.current;
     if (!nodeId || !spheresRef.current.length) return;
 
     const renderer = rendererRef.current;

@@ -23,6 +23,7 @@ const TABS = [
 
 const TeamEditor = ({ teamId, isAdmin = false, breadcrumb }) => {
   const [tab, setTab] = useState('info');
+  const dragNodeRef = React.useRef(null);
 
   const { team, nodes, refresh } = useTeamData(teamId);
   const { regions: templateRegions, points: brainPoints } = useBrainData();
@@ -90,8 +91,13 @@ const TeamEditor = ({ teamId, isAdmin = false, breadcrumb }) => {
 
   // ---- Node Operations ----
   const handleDrop = async (nodeId, regionId) => {
-    await api.put(`/admin/nodes/${nodeId}/region`, { brainRegionId: regionId || null });
-    refresh();
+    if (!nodeId) return;
+    try {
+      await api.put(`/admin/nodes/${nodeId}/region`, { brainRegionId: regionId || null });
+      await refresh();
+    } catch (err) {
+      console.error('Failed to move node:', err);
+    }
   };
 
   const openCreateNode = () => setNodeModal('create');
@@ -288,7 +294,9 @@ const TeamEditor = ({ teamId, isAdmin = false, breadcrumb }) => {
                   <GlassCard key={node.id}
                     draggable
                     onDragStart={e => {
-                      e.dataTransfer.setData('nodeId', String(node.id));
+                      e.dataTransfer.effectAllowed = 'move';
+                      e.dataTransfer.setData('text/plain', String(node.id));
+                      dragNodeRef.current = node.id;
                       e.currentTarget.style.opacity = '0.5';
                     }}
                     onDragEnd={e => { e.currentTarget.style.opacity = '1'; }}
@@ -413,7 +421,7 @@ const TeamEditor = ({ teamId, isAdmin = false, breadcrumb }) => {
 
               {showMiniBrain ? (
                 <div className="flex justify-center mt-4">
-                  <MiniBrain brainPoints={brainPoints} regions={teamRegions} onNodeDrop={handleDrop} width={400} height={400} />
+                  <MiniBrain brainPoints={brainPoints} regions={teamRegions} onNodeDrop={handleDrop} dragNodeRef={dragNodeRef} width={400} height={400} />
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -430,7 +438,9 @@ const TeamEditor = ({ teamId, isAdmin = false, breadcrumb }) => {
                       }}
                       onDrop={e => {
                         e.preventDefault();
-                        handleDrop(parseInt(e.dataTransfer.getData('nodeId')), region.id);
+                        const nodeId = dragNodeRef.current;
+                        dragNodeRef.current = null;
+                        if (nodeId) handleDrop(nodeId, region.id);
                         e.currentTarget.style.borderColor = '';
                         e.currentTarget.style.borderWidth = '';
                       }}

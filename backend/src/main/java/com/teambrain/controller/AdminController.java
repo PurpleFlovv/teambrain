@@ -61,18 +61,21 @@ public class AdminController {
     }
 
     @GetMapping("/stats")
-    public ResponseEntity<Map<String, Long>> getStats() {
+    public ResponseEntity<Map<String, Long>> getStats(@AuthenticationPrincipal UserDetails ud) {
+        if (!isAdmin(ud)) return ResponseEntity.status(403).build();
         return ResponseEntity.ok(adminService.getStats());
     }
 
     @GetMapping("/users")
-    public ResponseEntity<List<Map<String, Object>>> getUsers() {
+    public ResponseEntity<List<Map<String, Object>>> getUsers(@AuthenticationPrincipal UserDetails ud) {
+        if (!isAdmin(ud)) return ResponseEntity.status(403).build();
         return ResponseEntity.ok(adminService.getAllUsers());
     }
 
     @PostMapping("/users")
     public ResponseEntity<?> createUser(@RequestBody Map<String, Object> body,
                                          @AuthenticationPrincipal UserDetails ud) {
+        if (!isAdmin(ud)) return ResponseEntity.status(403).build();
         String uname = (String) body.get("username");
         String pwd = (String) body.get("password");
         @SuppressWarnings("unchecked")
@@ -84,6 +87,7 @@ public class AdminController {
     @PutMapping("/users/{id}")
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody Map<String, Object> body,
                                          @AuthenticationPrincipal UserDetails ud) {
+        if (!isAdmin(ud)) return ResponseEntity.status(403).build();
         adminService.updateUser(id,
             (String) body.get("username"),
             (List<String>) body.get("roles"), (String) body.get("password"), username(ud));
@@ -92,19 +96,25 @@ public class AdminController {
 
     @DeleteMapping("/users/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id, @AuthenticationPrincipal UserDetails ud) {
+        if (!isAdmin(ud)) return ResponseEntity.status(403).build();
         adminService.deleteUser(id, username(ud));
         return ResponseEntity.ok(Map.of("message", "用户已删除"));
     }
 
     @PutMapping("/users/{id}/state")
-    public ResponseEntity<?> setUserState(@PathVariable Long id, @RequestBody Map<String, Boolean> body) {
+    public ResponseEntity<?> setUserState(@PathVariable Long id, @RequestBody Map<String, Boolean> body,
+                                           @AuthenticationPrincipal UserDetails ud) {
+        if (!isAdmin(ud)) return ResponseEntity.status(403).build();
         adminService.setUserEnabled(id, body.get("enabled"));
         return ResponseEntity.ok(Map.of("message", "状态已更新"));
     }
 
     @GetMapping("/teams")
-    public ResponseEntity<List<Map<String, Object>>> getTeams() {
-        return ResponseEntity.ok(adminService.getAllTeams());
+    public ResponseEntity<List<Map<String, Object>>> getTeams(@AuthenticationPrincipal UserDetails ud) {
+        if (isAdmin(ud)) return ResponseEntity.ok(adminService.getAllTeams());
+        // TEAM_ADMIN: only their owned teams
+        return ResponseEntity.ok(adminService.getAllTeams().stream()
+            .filter(t -> username(ud).equals(t.get("ownerUsername"))).toList());
     }
 
     @PutMapping("/teams/{id}")
@@ -117,6 +127,7 @@ public class AdminController {
 
     @DeleteMapping("/teams/{id}")
     public ResponseEntity<?> deleteTeam(@PathVariable Long id, @AuthenticationPrincipal UserDetails ud) {
+        if (!isAdmin(ud)) return ResponseEntity.status(403).build();
         adminService.deleteTeam(id, username(ud));
         return ResponseEntity.ok(Map.of("message", "团队已删除"));
     }
@@ -124,6 +135,7 @@ public class AdminController {
     @PostMapping("/teams")
     public ResponseEntity<?> createTeam(@RequestBody Map<String, String> body,
                                          @AuthenticationPrincipal UserDetails ud) {
+        if (!isAdmin(ud)) return ResponseEntity.status(403).build();
         adminService.createTeam(body.get("teamName"), body.get("description"),
                 Long.parseLong(body.getOrDefault("ownerId", "1")), username(ud));
         return ResponseEntity.ok(Map.of("message", "团队已创建"));
@@ -167,9 +179,11 @@ public class AdminController {
 
     @GetMapping("/logs")
     public ResponseEntity<Map<String, Object>> getLogs(
+            @AuthenticationPrincipal UserDetails ud,
             @RequestParam(defaultValue = "") String action,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        if (!isAdmin(ud)) return ResponseEntity.status(403).build();
         Page<AuditLog> logs = adminService.getLogs(action.isEmpty() ? null : action, page, size);
         return ResponseEntity.ok(Map.of(
             "content", logs.getContent().stream().map(l -> Map.of(

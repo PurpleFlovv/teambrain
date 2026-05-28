@@ -23,7 +23,6 @@ const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex items-center justify-center h-screen bg-[var(--bg-deep-space)] text-[var(--text-muted)]">加载中...</div>;
   if (!user) return <Navigate to="/login" />;
-  if (!user.roles || !user.roles.includes('ADMIN')) return <Navigate to="/" />;
   return children;
 };
 

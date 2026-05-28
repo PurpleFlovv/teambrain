@@ -2,7 +2,6 @@ import { useState } from 'react';
 import GlassModal from './GlassModal';
 import FormField from './FormField';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 
 const RegionModal = ({ mode, initial, templateRegions, onSave, onCancel }) => {
@@ -41,16 +40,13 @@ const RegionModal = ({ mode, initial, templateRegions, onSave, onCancel }) => {
         </FormField>
         {mode === 'create' && (
           <FormField label="模板脑区">
-            <Select value={templateRegionId} onValueChange={setTemplateRegionId}>
-              <SelectTrigger>
-                <SelectValue placeholder="选择模板脑区..." />
-              </SelectTrigger>
-              <SelectContent>
-                {templateRegions.map(r => (
-                  <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select value={templateRegionId} onChange={e => setTemplateRegionId(e.target.value)}
+              className="w-full bg-black bg-opacity-30 border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm">
+              <option value="">选择模板脑区...</option>
+              {templateRegions.map(r => (
+                <option key={r.id} value={String(r.id)}>{r.name}</option>
+              ))}
+            </select>
           </FormField>
         )}
         <div className="flex justify-end space-x-3 pt-2">

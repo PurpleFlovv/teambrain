@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Building2, ScrollText, FileText, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useBrainData } from '../hooks/useBrainData';
@@ -11,11 +11,11 @@ import { Button } from '@/components/ui/button';
 import TeamEditPage from './TeamEditPage';
 import api from '../services/api';
 
-const ADMIN_TABS = [
-  { key: '', label: '仪表盘', icon: LayoutDashboard },
-  { key: 'users', label: '用户管理', icon: Users },
-  { key: 'teams', label: '团队管理', icon: Building2 },
-  { key: 'logs', label: '操作日志', icon: ScrollText },
+const ALL_TABS = [
+  { key: '', label: '仪表盘', icon: LayoutDashboard, adminOnly: false },
+  { key: 'users', label: '用户管理', icon: Users, adminOnly: true },
+  { key: 'teams', label: '团队管理', icon: Building2, adminOnly: false },
+  { key: 'logs', label: '操作日志', icon: ScrollText, adminOnly: true },
 ];
 
 // ---- Dashboard ----
@@ -150,7 +150,7 @@ const UserForm = ({ initial, onSave, onCancel }) => {
       <div>
         <label className="block text-white text-sm mb-1">角色</label>
         <div className="flex space-x-4">
-          {['USER', 'ADMIN'].map(r => (
+          {['USER', 'ADMIN', 'TEAM_ADMIN'].map(r => (
             <label key={r} className="flex items-center space-x-2 text-white text-sm cursor-pointer">
               <input type="checkbox" checked={roles.includes(r)} onChange={() => toggleRole(r)} className="w-4 h-4" />
               <span>{r}</span>
@@ -502,7 +502,9 @@ const AdminPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const subPath = location.pathname.replace('/admin/', '').replace('/admin', '');
+  const isSysAdmin = user?.roles?.includes('ADMIN');
 
+  const tabs = ALL_TABS.filter(t => isSysAdmin || !t.adminOnly);
   const menuKey = subPath.startsWith('teams/') ? 'teams' : (subPath || '');
 
   const content = (() => {
@@ -511,9 +513,9 @@ const AdminPage = () => {
       return <TeamDetail />;
     }
     switch (subPath) {
-      case 'users': return <UserList />;
+      case 'users': return isSysAdmin ? <UserList /> : <Navigate to="/admin" />;
       case 'teams': return <TeamList />;
-      case 'logs': return <LogList />;
+      case 'logs': return isSysAdmin ? <LogList /> : <Navigate to="/admin" />;
       default: return <Dashboard />;
     }
   })();
@@ -523,7 +525,7 @@ const AdminPage = () => {
       {/* Admin tab bar */}
       <div className="border-b border-[var(--glass-border)] bg-[var(--bg-deep-space)]">
         <div className="max-w-7xl mx-auto px-6 flex">
-          {ADMIN_TABS.map(m => {
+          {tabs.map(m => {
             const active = (m.key === 'teams' && subPath.startsWith('teams/')) || menuKey === m.key;
             return (
               <button

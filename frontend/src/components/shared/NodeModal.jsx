@@ -3,7 +3,6 @@ import GlassModal from './GlassModal';
 import FormField from './FormField';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 
 const NodeModal = ({ mode, initial, teamRegions, onSave, onCancel }) => {
@@ -38,28 +37,20 @@ const NodeModal = ({ mode, initial, teamRegions, onSave, onCancel }) => {
           <Input value={name} onChange={e => setName(e.target.value)} placeholder="节点名称" autoFocus />
         </FormField>
         <FormField label="类型">
-          <Select value={nodeType} onValueChange={setNodeType}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="MEMBER">成员</SelectItem>
-              <SelectItem value="PROJECT">项目</SelectItem>
-            </SelectContent>
-          </Select>
+          <select value={nodeType} onChange={e => setNodeType(e.target.value)}
+            className="w-full bg-black bg-opacity-30 border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm">
+            <option value="MEMBER">成员</option>
+            <option value="PROJECT">项目</option>
+          </select>
         </FormField>
         <FormField label="所属脑区">
-          <Select value={brainRegionId} onValueChange={setBrainRegionId}>
-            <SelectTrigger>
-              <SelectValue placeholder={mode === 'create' ? '选择脑区...' : '未分配'} />
-            </SelectTrigger>
-            <SelectContent>
-              {mode !== 'create' && <SelectItem value="">未分配</SelectItem>}
-              {teamRegions.map(r => (
-                <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <select value={brainRegionId} onChange={e => setBrainRegionId(e.target.value)}
+            className="w-full bg-black bg-opacity-30 border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm">
+            {mode !== 'create' && <option value="">未分配</option>}
+            {teamRegions.map(r => (
+              <option key={r.id} value={String(r.id)}>{r.name}</option>
+            ))}
+          </select>
         </FormField>
         <FormField label="描述">
           <Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="节点描述（可选）" />
