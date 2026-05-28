@@ -72,7 +72,7 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4" style={{ maxHeight: 'min(50vh, 420px)' }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ maxHeight: 'min(50vh, 420px)' }}>
         <div className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded-lg p-4 flex flex-col">
           <h3 className="text-white text-sm font-bold mb-3">3D 脑区预览</h3>
           <div className="flex-1 flex items-center justify-center">

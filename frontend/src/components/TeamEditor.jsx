@@ -273,9 +273,9 @@ const TeamEditor = ({ teamId, isAdmin = false, breadcrumb }) => {
 
         {/* ---- Nodes Tab ---- */}
         {tab === 'nodes' && (
-          <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
             {/* Left: Node list */}
-            <div className="w-1/2 border-r border-white border-opacity-10 p-4 overflow-y-auto">
+            <div className="w-full md:w-1/2 border-r border-white border-opacity-10 p-4 overflow-y-auto">
               <div className="flex items-center space-x-2 mb-4">
                 <button onClick={openCreateNode}
                   className="bg-blue-500 bg-opacity-50 hover:bg-opacity-70 px-3 py-2 rounded text-white text-sm shrink-0">
@@ -348,7 +348,7 @@ const TeamEditor = ({ teamId, isAdmin = false, breadcrumb }) => {
             </div>
 
             {/* Right: Region list / MiniBrain */}
-            <div className="w-1/2 p-4 overflow-y-auto">
+            <div className="w-full md:w-1/2 p-4 overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-bold text-sm">
                   {showMiniBrain ? '迷你大脑' : '脑区列表'}

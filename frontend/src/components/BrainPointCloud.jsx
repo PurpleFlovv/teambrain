@@ -26,6 +26,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const [isSaving, setIsSaving] = useState(false);
   // 添加UI准备状态
   const [uiReady, setUiReady] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   // 脑区信息数据 - 从 nodes prop 和 regions prop 构建
   const brainRegionInfo = useMemo(() => {
@@ -77,18 +78,18 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     // 收集所有信息条目
     const infoEntries = new Set();
     const infoToPointsMap = new Map();
-    
+
     // 遍历所有光点，收集信息条目
     pointMeshes.forEach(mesh => {
       const { infoName } = mesh.userData;
       infoEntries.add(infoName);
-      
+
       if (!infoToPointsMap.has(infoName)) {
         infoToPointsMap.set(infoName, []);
       }
       infoToPointsMap.get(infoName).push(mesh);
     });
-    
+
     // 为每个信息条目创建代表节点
     const representativeNodes = [];
     infoEntries.forEach(infoName => {
@@ -97,7 +98,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         // 随机选择一个光点作为代表节点
         const randomIndex = Math.floor(Math.random() * pointsWithInfo.length);
         const representativePoint = pointsWithInfo[randomIndex];
-        
+
         // 创建代表节点数据
         const representativeNode = {
           infoKey: infoName,
@@ -110,20 +111,20 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           partitionIndex: representativePoint.userData.partitionIndex,
           description: representativePoint.userData.infoDescription
         };
-        
+
         representativeNodes.push(representativeNode);
-        
+
         // 为光点添加infoKey属性
         representativePoint.userData.infoKey = infoName;
       }
     });
-    
+
     // 保存代表节点列表
     setRepresentativeNodes(representativeNodes);
-    
+
     // 输出代表节点列表到控制台
     console.log("代表节点列表:", representativeNodes);
-    
+
     return representativeNodes;
   };
 
@@ -150,12 +151,12 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     // 遍历所有光点
     pointMeshes.forEach((startPoint, startIdx) => {
       const startInfoKey = startPoint.userData.infoKey;
-      
+
       // 查找适用的连接规则
       connectionRules.forEach(rule => {
         if (rule.from.includes(startInfoKey)) {
           let targetInfoKeys = [];
-          
+
           if (rule.to === "*") {
             // 如果是 "*"，连接到所有其他节点
             targetInfoKeys = [...new Set(pointMeshes.map(p => p.userData.infoKey))].filter(key => key !== startInfoKey);
@@ -163,36 +164,36 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
             // 否则连接到指定的节点
             targetInfoKeys = rule.to.filter(key => key !== startInfoKey);
           }
-          
+
           // 性能控制：每个光点最多与3个不同的目标infoKey建立连接
           if (targetInfoKeys.length > 3) {
             // 随机选择3个
             const shuffled = [...targetInfoKeys].sort(() => 0.5 - Math.random());
             targetInfoKeys = shuffled.slice(0, 3);
           }
-          
+
           // 为每个目标infoKey寻找连接目标
           targetInfoKeys.forEach(targetInfoKey => {
             // 找到所有具有目标infoKey的光点
             const targetPoints = pointMeshes.filter(p => p.userData.infoKey === targetInfoKey);
-            
+
             if (targetPoints.length > 0) {
               // 性能控制：如果目标光点数量超过10，随机选择10个
               let candidateTargets = targetPoints;
               if (targetPoints.length > 10) {
                 candidateTargets = [...targetPoints].sort(() => 0.5 - Math.random()).slice(0, 10);
               }
-              
+
               // 随机选择一个目标光点（排除自身）
               const validTargets = candidateTargets.filter(p => p !== startPoint);
               if (validTargets.length > 0) {
                 const endPoint = validTargets[Math.floor(Math.random() * validTargets.length)];
                 const endIdx = pointMeshes.indexOf(endPoint);
-                
+
                 // 使用Set去重，确保同一对光点之间只有一条线
                 const connectionKey1 = `${startIdx}_${endIdx}`;
                 const connectionKey2 = `${endIdx}_${startIdx}`;
-                
+
                 if (!connectionSet.has(connectionKey1) && !connectionSet.has(connectionKey2)) {
                   connectionSet.add(connectionKey1);
                   connectionPool.push({
@@ -209,13 +210,13 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         }
       });
     });
-    
+
     // 性能控制：最终生成的连线总数量应控制在2000条以内
     let finalConnections = connectionPool;
     if (connectionPool.length > 2000) {
       finalConnections = [...connectionPool].sort(() => 0.5 - Math.random()).slice(0, 2000);
     }
-    
+
     // 生成连接线
     finalConnections.forEach(connection => {
       const { startPoint, endPoint, rule } = connection;
@@ -261,7 +262,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         new THREE.Vector3(startPoint.position.x, startPoint.position.y, startPoint.position.z),
         new THREE.Vector3(endPoint.position.x, endPoint.position.y, endPoint.position.z)
       ];
-      
+
       // 添加中间点使曲线更自然
       const midPoint = new THREE.Vector3(
         (startPoint.position.x + endPoint.position.x) / 2 + (Math.random() - 0.5) * 0.2,
@@ -269,7 +270,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         (startPoint.position.z + endPoint.position.z) / 2 + (Math.random() - 0.5) * 0.2
       );
       points.splice(1, 0, midPoint);
-      
+
       const curve = new THREE.CatmullRomCurve3(points);
       const curvePoints = curve.getPoints(50);
       const geometry = new THREE.TubeGeometry(
@@ -279,18 +280,18 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         8,
         false
       );
-      
+
       const material = new THREE.MeshBasicMaterial({
         color: new THREE.Color(color),
         transparent: true,
         opacity: opacity,
         side: THREE.DoubleSide
       });
-      
+
       const line = new THREE.Mesh(geometry, material);
-      line.userData = { 
-        from: startPoint.userData.infoKey, 
-        to: endPoint.userData.infoKey, 
+      line.userData = {
+        from: startPoint.userData.infoKey,
+        to: endPoint.userData.infoKey,
         type,
         startPoint: startPoint,
         endPoint: endPoint,
@@ -298,13 +299,13 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       };
       sceneRef.current.add(line);
       connectionLinesRef.current.push(line);
-      
+
       // 创建流动粒子（但不立即激活）
       const particleGeometry = new THREE.SphereGeometry(0.003 * 3, 12, 12); // 增大流动光点半径为线条宽度的3倍
       const particleColor = new THREE.Color(flowColor);
       // 提高亮度
       particleColor.offsetHSL(0, 0, 0.3);
-      
+
       const particleMaterial = new THREE.MeshBasicMaterial({
         color: particleColor,
         transparent: true,
@@ -312,10 +313,10 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         emissive: particleColor, // 添加自发光
         emissiveIntensity: 0.8 // 设置自发光强度
       });
-      
+
       const particle = new THREE.Mesh(particleGeometry, particleMaterial);
       sceneRef.current.add(particle);
-      
+
       // 创建拖尾粒子（增加到8个）
       const tailParticles = [];
       for (let i = 0; i < 8; i++) {
@@ -329,7 +330,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         sceneRef.current.add(tailParticle);
         tailParticles.push(tailParticle);
       }
-      
+
       flowParticlesRef.current.push({
         mesh: particle,
         curve: curve,
@@ -341,7 +342,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         isActive: false // 默认不激活流动
       });
     });
-    
+
     // 在控制台输出生成的连接总数
     console.log(`生成的连接总数: ${finalConnections.length}`);
   };
@@ -353,7 +354,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       if (particle.mesh && sceneRef.current) {
         sceneRef.current.remove(particle.mesh);
       }
-      
+
       // 从场景中移除拖尾粒子
       if (particle.tailParticles && sceneRef.current) {
         particle.tailParticles.forEach(tail => {
@@ -361,7 +362,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         });
       }
     });
-    
+
     // 清空活动粒子数组
     activeFlowParticlesRef.current = [];
   };
@@ -370,12 +371,12 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const startFlowAnimation = (nodeKey) => {
     // 先清除所有现有的流动粒子
     clearAllFlowParticles();
-    
+
     // 找到与指定节点相关的连接线
     const relatedConnections = connectionLinesRef.current.filter(line => {
       return line.userData.from === nodeKey || line.userData.to === nodeKey;
     });
-    
+
     // 启动相关连接线的流动动画
     relatedConnections.forEach(connection => {
       // 找到对应的流动粒子
@@ -387,7 +388,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
            particle.curve.points[particle.curve.points.length - 1].distanceTo(connection.userData.startPoint.position) < 0.01)
         );
       });
-      
+
       if (flowParticle) {
         flowParticle.isActive = true;
         flowParticle.progress = 0; // 重置进度
@@ -403,7 +404,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     connectionLinesRef.current.forEach(line => {
       line.material.opacity = line.userData.originalOpacity || 0.8;
     });
-    
+
     // 如果点击的是同一个节点，取消高亮
     if (highlightedNodeRef.current === nodeKey) {
       highlightedNodeRef.current = null;
@@ -412,11 +413,11 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       clearAllFlowParticles();
       return;
     }
-    
+
     // 设置新的高亮节点
     highlightedNodeRef.current = nodeKey;
     setIsNodeListExpanded(true);
-    
+
     // 高亮相关连接线，非相关连接线降低透明度
     connectionLinesRef.current.forEach(line => {
       const { from, to } = line.userData;
@@ -426,10 +427,10 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         line.material.opacity = 0.3; // 降低非相关连接线透明度
       }
     });
-    
+
     // 启动流动动画
     startFlowAnimation(nodeKey);
-    
+
     // 更新相关节点列表
     const connectedNodesList = [];
     connectionLinesRef.current.forEach(line => {
@@ -452,7 +453,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         }
       }
     });
-    
+
     setConnectedNodes(connectedNodesList);
   };
 
@@ -461,7 +462,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     connectionLinesRef.current.forEach(line => {
       line.visible = visible;
     });
-    
+
     flowParticlesRef.current.forEach(particle => {
       particle.mesh.visible = visible;
       if (particle.tailParticles) {
@@ -484,10 +485,14 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     camera.position.set(0, 0, 3);
     cameraRef.current = camera;
     sceneRef.current = scene;
-    
+
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.domElement.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      console.warn('WebGL context lost, pausing render');
+    });
     mountRef.current.appendChild(renderer.domElement);
 
     // 控制器
@@ -537,7 +542,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           const z = point[1];
 
           // 创建球体几何体 - 减小半径从0.05到0.03
-          const geometry = new THREE.SphereGeometry(0.02, 16, 16); // 进一步减小半径
+          const segments = isMobile ? 8 : 16;
+          const geometry = new THREE.SphereGeometry(0.02, segments, segments); // 进一步减小半径
 
           // 创建材质 - 增加基础亮度
           const material = new THREE.MeshPhongMaterial({
@@ -600,7 +606,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
       // 创建代表节点
       const representativeNodes = createRepresentativeNodes(localPointMeshes);
-      
+
       // 创建全光点动态神经连接
       createDynamicConnections(localPointMeshes);
       if (!showConnectionsRef.current) {
@@ -623,21 +629,22 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     const starVertices = [];
     const starSizes = [];
     const starColors = [];
-    
-    // 增加星星数量到4000
-    for (let i = 0; i < 4000; i++) {
+
+    // 减少星星数量：桌面4000，移动端500
+    const starCount = isMobile ? 500 : 4000;
+    for (let i = 0; i < starCount; i++) {
       // 扩大分布范围到±150
       starVertices.push((Math.random() - 0.5) * 300);
       starVertices.push((Math.random() - 0.5) * 300);
       starVertices.push((Math.random() - 0.5) * 300);
-      
+
       // 随机大小，少数星星更大更亮
       let size = 0.08; // 基础大小增加到0.08
       if (Math.random() < 0.1) { // 10%的星星更大
         size = 0.15 + Math.random() * 0.1;
       }
       starSizes.push(size);
-      
+
       // 颜色：大多数为蓝白色，少数为纯白色
       if (Math.random() < 0.8) {
         // 蓝白色星星
@@ -647,19 +654,19 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         starColors.push(1.0, 1.0, 1.0);
       }
     }
-    
+
     starGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(starVertices), 3));
     starGeometry.setAttribute('size', new THREE.BufferAttribute(new Float32Array(starSizes), 1));
     starGeometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(starColors), 3));
-    
-    const starMaterial = new THREE.PointsMaterial({ 
+
+    const starMaterial = new THREE.PointsMaterial({
       size: 1, // 这个值会被每个顶点的size属性覆盖
       vertexColors: true,
       transparent: true,
       opacity: 0.9, // 增加不透明度
       sizeAttenuation: true
     });
-    
+
     const stars = new THREE.Points(starGeometry, starMaterial);
     scene.add(stars);
 
@@ -679,23 +686,23 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     // WASD移动控制 - 修改为仅W/S上下移动
     const moveSpeed = 0.1;
     const keys = {};
-    
+
     const handleKeyDown = (event) => {
       keys[event.key.toLowerCase()] = true;
     };
-    
+
     const handleKeyUp = (event) => {
       keys[event.key.toLowerCase()] = false;
     };
-    
+
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    
+
     const moveCamera = () => {
       if (!cameraRef.current) return;
-      
+
       const camera = cameraRef.current;
-      
+
       // 仅保留W/S键的上下移动控制
       if (keys['w']) {
         camera.position.y += moveSpeed;
@@ -711,7 +718,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       // 更新鼠标位置
       mouseRef.current.x = (event.clientX / window.innerWidth) * 2 - 1;
       mouseRef.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
-      
+
       // 更新工具提示位置
       if (tooltipRef.current) {
         tooltipRef.current.style.left = `${event.clientX + 10}px`;
@@ -743,14 +750,14 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     let frameId;
     const animate = () => {
       frameId = requestAnimationFrame(animate);
-      
+
       // 更新流动粒子（仅更新活动的粒子）
       activeFlowParticlesRef.current.forEach(particle => {
         if (!particle.isActive) return;
-        
+
         // 更新粒子位置
         particle.progress += particle.speed * particle.direction;
-        
+
         // 如果粒子到达终点，反向移动
         if (particle.progress > 1) {
           particle.progress = 1;
@@ -759,21 +766,21 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           particle.progress = 0;
           particle.direction = 1;
         }
-        
+
         // 设置粒子位置
         const position = particle.curve.getPoint(particle.progress);
         particle.mesh.position.copy(position);
-        
+
         // 更新拖尾粒子
         if (particle.tailParticles) {
           // 保存当前位置到历史记录
           particle.tailPositions.push(position.clone());
-          
+
           // 保持历史记录长度
           if (particle.tailPositions.length > 8) {
             particle.tailPositions.shift();
           }
-          
+
           // 更新拖尾粒子位置
           for (let i = 0; i < particle.tailParticles.length; i++) {
             const tailIndex = particle.tailPositions.length - 2 - i;
@@ -786,14 +793,14 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           }
         }
       });
-      
+
       // 更新射线投射器
       if (cameraRef.current) {
         raycasterRef.current.setFromCamera(mouseRef.current, cameraRef.current);
-        
+
         // 检测与点的相交
         const intersects = raycasterRef.current.intersectObjects(localPointMeshes);
-        
+
         // 如果当前有悬停的对象，先恢复其状态
         if (hoveredObjectRef.current && intersects.length === 0) {
           const originalData = originalMaterialsRef.current.get(hoveredObjectRef.current.uuid);
@@ -805,11 +812,11 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           hoveredObjectRef.current = null;
           tooltip.style.opacity = '0';
         }
-        
+
         // 如果有新的相交对象
         if (intersects.length > 0) {
           const intersectedObject = intersects[0].object;
-          
+
           // 如果这是一个新的对象
           if (intersectedObject !== hoveredObjectRef.current) {
             // 恢复之前悬停对象的状态
@@ -821,12 +828,12 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
                 hoveredObjectRef.current.material.opacity = 0.9; // 更新恢复值
               }
             }
-            
+
             // 设置新悬停对象的状态
             intersectedObject.scale.setScalar(1.5);
             intersectedObject.material.emissive.set(0x444444);
             intersectedObject.material.opacity = 1.0;
-            
+
             // 更新工具提示内容
             if (tooltipRef.current) {
               const { infoName, infoDescription, partitionColor } = intersectedObject.userData;
@@ -841,12 +848,12 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
               `;
               tooltipRef.current.style.opacity = '1';
             }
-            
+
             hoveredObjectRef.current = intersectedObject;
           }
         }
       }
-      
+
       controls.update(); // 更新控制器
       moveCamera(); // 更新相机位置
       renderer.render(scene, camera);
@@ -858,6 +865,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
+      setIsMobile(window.innerWidth < 768);
     };
     window.addEventListener('resize', handleResize);
 
@@ -958,20 +966,20 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       )}
       {/* 根据 uiReady 状态控制 UI 元素的显示 */}
       <div className={`absolute top-8 left-8 text-white z-10 transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
-        <h1 className="text-4xl font-bold">{team?.teamName || 'TeamBrain'}大脑</h1>
+        <h1 className="text-2xl md:text-4xl font-bold">{team?.teamName || 'TeamBrain'}大脑</h1>
         <p className="text-sm opacity-80">基于真实大脑分区数据</p>
       </div>
-      
+
       {/* 更新提示文字：将"WASD移动"改为"W/S上下移动" */}
       <div className={`absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white text-center opacity-60 z-10 transition-opacity duration-500 ${uiReady ? 'opacity-60' : 'opacity-0'}`}>
-        <p className="text-sm">拖拽旋转视角 • 滚轮缩放 • W/S上下移动 • 悬停查看分区信息</p>
+        <p className="text-xs md:text-sm">拖拽旋转 · 滚轮缩放 · W/S移动</p>
       </div>
-      
+
       {/* 控制面板 */}
-      <div className={`absolute bottom-8 right-8 bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 text-white z-10 max-w-xs transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`absolute bottom-4 md:bottom-8 right-4 md:right-8 bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 text-white z-10 max-w-[calc(100vw-1rem)] md:max-w-xs transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
         <h2 className="text-lg font-bold mb-1">{team?.teamName || 'TeamBrain'} · 团队大脑</h2>
         <p className="text-xs opacity-80 mb-3">无限进步 | 全网粉丝2800万+</p>
-        
+
         <div className="space-y-2 mb-3">
           {regions && regions.length > 0 ? (
             regions.map(r => (
@@ -987,7 +995,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
             </div>
           )}
         </div>
-        
+
         {/* 连接类型图例 */}
         <div className="mb-3">
           <h3 className="text-sm font-bold mb-2">连接类型图例</h3>
@@ -1000,25 +1008,25 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
             ))}
           </div>
         </div>
-        
+
         {/* 添加显示连接线的复选框 */}
         <div className="mb-3">
           <label className="flex items-center space-x-2 cursor-pointer">
-            <input 
-              type="checkbox" 
-              checked={showConnections} 
+            <input
+              type="checkbox"
+              checked={showConnections}
               onChange={(e) => setShowConnections(e.target.checked)}
               className="w-4 h-4"
             />
             <span className="text-xs">显示全脑连接线</span>
           </label>
         </div>
-        
+
         <p className="text-xs opacity-70 animate-pulse">点击任意光点，了解团队详情</p>
       </div>
-      
+
       {/* 代表节点信息面板 - 移动到左下角，高度与团队信息面板一致 */}
-      <div className={`absolute bottom-8 left-8 bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 text-white z-10 max-w-xs max-h-80 overflow-y-auto scrollbar-hide transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`hidden md:block absolute bottom-8 left-8 bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 text-white z-10 max-w-xs max-h-80 overflow-y-auto scrollbar-hide transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
         <h2 className="text-lg font-bold mb-2">
           {isNodeListExpanded ? `相关节点列表` : `代表节点列表`}
         </h2>
@@ -1057,7 +1065,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           )}
         </div>
       </div>
-      
+
       {/* 自定义滚动条样式 */}
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
