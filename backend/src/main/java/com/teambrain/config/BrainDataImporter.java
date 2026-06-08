@@ -29,10 +29,16 @@ public class BrainDataImporter implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         // Only import if point table is empty
-        if (pointRepository.count() > 0) return;
+        long pointCount = pointRepository.count();
+        System.out.println("BrainDataImporter: current point count = " + pointCount);
+        if (pointCount > 0) return;
 
         List<BrainRegion> regions = regionRepository.findAllByOrderBySortOrderAsc();
-        if (regions.size() < 6) return;
+        System.out.println("BrainDataImporter: region count = " + regions.size());
+        if (regions.size() < 6) {
+            System.out.println("BrainDataImporter: not enough regions, skipping import");
+            return;
+        }
 
         // Read partition JSON from classpath
         InputStream is = getClass().getClassLoader().getResourceAsStream("brain_points_labeled.json");
@@ -54,11 +60,19 @@ public class BrainDataImporter implements CommandLineRunner {
                     .findFirst().orElse(null);
             if (region == null) continue;
 
+            List<BrainPoint> batch = new java.util.ArrayList<>();
             for (JsonNode pt : points) {
-                BrainPoint bp = new BrainPoint(region,
-                        pt.get(0).asDouble(), pt.get(1).asDouble(), pt.get(2).asDouble());
-                pointRepository.save(bp);
-                total++;
+                batch.add(new BrainPoint(region,
+                        pt.get(0).asDouble(), pt.get(1).asDouble(), pt.get(2).asDouble()));
+                if (batch.size() >= 500) {
+                    pointRepository.saveAll(batch);
+                    total += batch.size();
+                    batch.clear();
+                }
+            }
+            if (!batch.isEmpty()) {
+                pointRepository.saveAll(batch);
+                total += batch.size();
             }
         }
         System.out.println("Brain point cloud imported: " + total + " points");
