@@ -90,9 +90,9 @@ INSERT INTO node_connection (id, team_id, from_node_id, to_node_id, target_type,
 (23, 1, 18, 20, 'SINGLE', 'business', '#44ffaa', 0.015, '#44ffaa', 0.8),
 (24, 1, 17, 19, 'SINGLE', 'business', '#44ffaa', 0.015, '#44ffaa', 0.8),
 (25, 1, 18, 19, 'SINGLE', 'business', '#44ffaa', 0.015, '#44ffaa', 0.8),
-(26, 1, 24, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6),
-(27, 1, 21, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6),
-(28, 1, 22, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6),
-(29, 1, 23, NULL, 'ALL', 'culture', '#ff8844', 0.01, '#ff8844', 0.6) ON CONFLICT DO NOTHING;
+(26, 1, 24, NULL, 'ALL', 'culture', '#ff4466', 0.01, '#ff4466', 0.6),
+(27, 1, 21, NULL, 'ALL', 'culture', '#ff4466', 0.01, '#ff4466', 0.6),
+(28, 1, 22, NULL, 'ALL', 'culture', '#ff4466', 0.01, '#ff4466', 0.6),
+(29, 1, 23, NULL, 'ALL', 'culture', '#ff4466', 0.01, '#ff4466', 0.6) ON CONFLICT DO NOTHING;
 
 

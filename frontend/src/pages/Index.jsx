@@ -53,7 +53,7 @@ const Index = () => {
       <div className="absolute top-4 right-4 z-10">
         <select value={activeTeamId || ''} onChange={e => switchTeam(e.target.value)}
           className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded px-3 py-1.5 text-[var(--text-primary)] text-sm">
-          {allTeams.map(t => (
+          {allTeams.filter(t => user?.teamIds?.includes(t.id) || user?.ownedTeamId === t.id).map(t => (
             <option key={t.id} value={t.id}>{t.teamName}{t.id === user?.ownedTeamId ? ' (我的)' : ''}</option>
           ))}
         </select>
