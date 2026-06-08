@@ -14,7 +14,7 @@ const Navbar = () => {
   );
 
   return (
-    <div className="h-14 bg-[var(--glass-bg)] backdrop-blur-[16px] border-b border-[var(--glass-border)] flex items-center justify-between px-6 shrink-0 relative">
+    <div className="h-14 bg-[var(--glass-bg)] backdrop-blur-[16px] border-b border-[var(--glass-border)] flex items-center justify-between px-6 shrink-0 relative z-30">
       <button onClick={() => navigate('/')} className="text-[var(--text-primary)] font-bold text-lg hover:opacity-80 transition-opacity">
         TeamBrain
       </button>

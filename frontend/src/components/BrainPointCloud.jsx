@@ -1109,13 +1109,13 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
       {/* Mobile bottom drawer */}
       {isMobile && (
-        <div className="absolute bottom-0 left-0 right-0 z-20">
+        <div className="absolute bottom-0 left-0 right-0 z-20"
+             onTouchStart={handleDrawerTouchStart}
+             onTouchMove={handleDrawerTouchMove}
+             onTouchEnd={handleDrawerTouchEnd}>
           {/* Handle bar */}
-          <div className="flex flex-col items-center pt-2 pb-1 bg-black bg-opacity-80 rounded-t-xl"
-               onTouchStart={handleDrawerTouchStart}
-               onTouchMove={handleDrawerTouchMove}
-               onTouchEnd={handleDrawerTouchEnd}>
-            <div className="w-10 h-1 bg-white bg-opacity-40 rounded-full mb-2" />
+          <div className="flex flex-col items-center pt-4 pb-3 bg-black bg-opacity-80 rounded-t-xl">
+            <div className="w-12 h-1.5 bg-white bg-opacity-50 rounded-full mb-3" />
             {/* Tab indicators */}
             <div className="flex gap-2 mb-2">
               <div className={`w-2 h-2 rounded-full ${drawerTab === 0 ? 'bg-white' : 'bg-white bg-opacity-30'}`} />
