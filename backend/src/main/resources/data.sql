@@ -9,7 +9,7 @@ INSERT INTO brain_region (id, name, color_hex, sort_order, team_id, template_reg
 (2, '额叶后部', '#44AAFF', 2, NULL, NULL),
 (3, '顶叶', '#AA44FF', 3, NULL, NULL),
 (4, '颞叶', '#44FFAA', 4, NULL, NULL),
-(5, '枕叶', '#FF8844', 5, NULL, NULL),
+(5, '枕叶', '#FFCC00', 5, NULL, NULL),
 (6, '小脑/脑干', '#FF4477', 6, NULL, NULL) ON CONFLICT DO NOTHING;
 
 -- 管理员账号 admin / admin123
@@ -95,4 +95,11 @@ INSERT INTO node_connection (id, team_id, from_node_id, to_node_id, target_type,
 (28, 1, 22, NULL, 'ALL', 'culture', '#ff4466', 0.01, '#ff4466', 0.6),
 (29, 1, 23, NULL, 'ALL', 'culture', '#ff4466', 0.01, '#ff4466', 0.6) ON CONFLICT DO NOTHING;
 
+-- 确保脑区颜色不重复
+UPDATE brain_region SET color_hex = '#FFB347' WHERE name = '前额叶';
+UPDATE brain_region SET color_hex = '#44AAFF' WHERE name = '额叶后部';
+UPDATE brain_region SET color_hex = '#AA44FF' WHERE name = '顶叶';
+UPDATE brain_region SET color_hex = '#44FFAA' WHERE name = '颞叶';
+UPDATE brain_region SET color_hex = '#FFCC00' WHERE name = '枕叶';
+UPDATE brain_region SET color_hex = '#FF4477' WHERE name = '小脑/脑干';
 
