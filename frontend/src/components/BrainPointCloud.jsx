@@ -514,6 +514,11 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   useEffect(() => {
     if (!mountRef.current || !brainPoints || brainPoints.length === 0) return;
 
+    // Mobile: downsample points to prevent GPU crash
+    const renderPoints = isMobile && brainPoints.length > 600
+      ? brainPoints.filter((_, i) => i % Math.ceil(brainPoints.length / 600) === 0)
+      : brainPoints;
+
     // 场景、相机、渲染器
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000011);
@@ -548,7 +553,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
       // Group brainPoints by regionId
       const pointsByRegion = {};
-      brainPoints.forEach(p => {
+      renderPoints.forEach(p => {
         if (!pointsByRegion[p.regionId]) {
           pointsByRegion[p.regionId] = { points: [], color: p.colorHex, name: p.regionName };
         }
@@ -668,7 +673,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     const starColors = [];
 
     // 减少星星数量：桌面4000，移动端500
-    const starCount = isMobile ? 500 : 4000;
+    const starCount = isMobile ? 200 : 4000;
     for (let i = 0; i < starCount; i++) {
       // 扩大分布范围到±150
       starVertices.push((Math.random() - 0.5) * 300);
@@ -788,8 +793,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     const animate = () => {
       frameId = requestAnimationFrame(animate);
 
-      // 更新流动粒子（仅更新活动的粒子）
-      activeFlowParticlesRef.current.forEach(particle => {
+      // 更新流动粒子（仅更新活动的粒子，移动端跳过）
+      if (!isMobile) activeFlowParticlesRef.current.forEach(particle => {
         if (!particle.isActive) return;
 
         // 更新粒子位置
@@ -829,7 +834,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
             }
           }
         }
-      });
+      });}
 
       // 更新射线投射器
       if (cameraRef.current) {
