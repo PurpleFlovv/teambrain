@@ -83,13 +83,10 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     return info;
   }, [nodes, regions]);
 
-  // 定义连接规则（用脑区 ID 精准匹配）
+  // 定义连接规则（用节点名匹配，兼容策略服务和手动连接两种格式）
   const connectionRules = useMemo(() => (connRules || []).map(c => ({
-    fromRegionId: c.fromRegionId != null ? c.fromRegionId : null,
-    toRegionId: c.toRegionId != null ? c.toRegionId : null,
-    fromNodeNames: [c.fromNodeName],
-    toNodeNames: c.toNodeName && c.toNodeName !== '*' ? [c.toNodeName] : null,
-    toAll: c.toNodeName === '*' || c.targetType === 'ALL',
+    from: [c.fromNodeName],
+    to: c.toNodeName && c.toNodeName !== '*' ? [c.toNodeName] : '*',
     type: c.connectionType,
     color: c.colorHex ? parseInt(c.colorHex.replace('#', ''), 16) : 0xffffff,
     width: c.lineWidth || 0.02,
@@ -190,33 +187,32 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
     // 遍历所有光点
     pointMeshes.forEach((startPoint, startIdx) => {
-      const startRegionId = startPoint.userData.brainRegionId;
+      const startInfoKey = startPoint.userData.infoKey;
 
       // 查找适用的连接规则
       connectionRules.forEach(rule => {
-        if (rule.fromRegionId != null && rule.fromRegionId === startRegionId) {
-          let targetRegionIds = [];
+        if (rule.from.includes(startInfoKey)) {
+          let targetInfoKeys = [];
 
-          if (rule.toAll) {
-            // ALL — 连接到所有其他脑区
-            targetRegionIds = [...new Set(pointMeshes.map(p => p.userData.brainRegionId))].filter(id => id !== startRegionId);
-          } else if (rule.toRegionId != null) {
-            // 指定脑区
-            targetRegionIds = [rule.toRegionId].filter(id => id !== startRegionId);
+          if (rule.to === "*") {
+            // 如果是 "*"，连接到所有其他节点
+            targetInfoKeys = [...new Set(pointMeshes.map(p => p.userData.infoKey))].filter(key => key !== startInfoKey);
           } else {
-            // 回退：按节点名
-            return;
+            // 否则连接到指定的节点
+            targetInfoKeys = rule.to.filter(key => key !== startInfoKey);
           }
 
-          // 性能控制：每个光点最多与3个不同的目标脑区建立连接
-          if (targetRegionIds.length > 3) {
-            const shuffled = [...targetRegionIds].sort(() => 0.5 - Math.random());
-            targetRegionIds = shuffled.slice(0, 3);
+          // 性能控制：每个光点最多与3个不同的目标infoKey建立连接
+          if (targetInfoKeys.length > 3) {
+            // 随机选择3个
+            const shuffled = [...targetInfoKeys].sort(() => 0.5 - Math.random());
+            targetInfoKeys = shuffled.slice(0, 3);
           }
 
-          targetRegionIds.forEach(targetRegionId => {
-            // 找到所有属于目标脑区的光点
-            const targetPoints = pointMeshes.filter(p => p.userData.brainRegionId === targetRegionId);
+          // 为每个目标infoKey寻找连接目标
+          targetInfoKeys.forEach(targetInfoKey => {
+            // 找到所有具有目标infoKey的光点
+            const targetPoints = pointMeshes.filter(p => p.userData.infoKey === targetInfoKey);
 
             if (targetPoints.length > 0) {
               // 性能控制：如果目标光点数量超过10，随机选择10个
@@ -286,8 +282,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         });
         const simpleLine = new THREE.Line(lineGeo, lineMat);
         simpleLine.userData = {
-          fromRegionId: startPoint.userData.brainRegionId,
-          toRegionId: endPoint.userData.brainRegionId,
+          from: startPoint.userData.infoKey,
+          to: endPoint.userData.infoKey,
           type,
           startPoint: startPoint,
           endPoint: endPoint,
@@ -331,8 +327,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
       const line = new THREE.Mesh(geometry, material);
       line.userData = {
-        fromRegionId: startPoint.userData.brainRegionId,
-        toRegionId: endPoint.userData.brainRegionId,
+        from: startPoint.userData.infoKey,
+        to: endPoint.userData.infoKey,
         type,
         startPoint: startPoint,
         endPoint: endPoint,
@@ -415,7 +411,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
     // 找到与指定节点相关的连接线
     const relatedConnections = connectionLinesRef.current.filter(line => {
-      return line.userData.fromRegionId === nodeKey || line.userData.toRegionId === nodeKey;
+      return line.userData.from === nodeKey || line.userData.to === nodeKey;
     });
 
     // 启动相关连接线的流动动画
@@ -433,7 +429,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       if (flowParticle) {
         flowParticle.isActive = true;
         flowParticle.progress = 0; // 重置进度
-        flowParticle.direction = connection.userData.fromRegionId === nodeKey ? 1 : -1; // 设置流动方向
+        flowParticle.direction = connection.userData.from === nodeKey ? 1 : -1; // 设置流动方向
         activeFlowParticlesRef.current.push(flowParticle);
       }
     });
@@ -461,8 +457,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
     // 高亮相关连接线，非相关连接线降低透明度
     connectionLinesRef.current.forEach(line => {
-      const { fromRegionId, toRegionId } = line.userData;
-      if (fromRegionId === nodeKey || toRegionId === nodeKey) {
+      const { from, to } = line.userData;
+      if (from === nodeKey || to === nodeKey) {
         line.material.opacity = 1.0;
       } else {
         line.material.opacity = 0.3; // 降低非相关连接线透明度
@@ -475,15 +471,17 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     // 更新相关节点列表
     const connectedNodesList = [];
     connectionLinesRef.current.forEach(line => {
-      const { fromRegionId, toRegionId, type } = line.userData;
-      if (fromRegionId === nodeKey) {
-        representativeNodes.filter(node => node.brainRegionId === toRegionId).forEach(node => {
-          connectedNodesList.push({ ...node, connectionType: type });
-        });
-      } else if (toRegionId === nodeKey) {
-        representativeNodes.filter(node => node.brainRegionId === fromRegionId).forEach(node => {
-          connectedNodesList.push({ ...node, connectionType: type });
-        });
+      const { from, to, type } = line.userData;
+      if (from === nodeKey) {
+        const connectedNode = representativeNodes.find(node => node.infoKey === to);
+        if (connectedNode) {
+          connectedNodesList.push({ ...connectedNode, connectionType: type });
+        }
+      } else if (to === nodeKey) {
+        const connectedNode = representativeNodes.find(node => node.infoKey === from);
+        if (connectedNode) {
+          connectedNodesList.push({ ...connectedNode, connectionType: type });
+        }
       }
     });
 
@@ -932,9 +930,9 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
         if (intersects.length > 0) {
           const clickedObject = intersects[0].object;
-          const nodeKey = clickedObject.userData.brainRegionId;
+          const nodeKey = clickedObject.userData.infoKey;
 
-          if (nodeKey != null) {
+          if (nodeKey) {
             // 临时显示连接线（覆盖复选框状态）
             if (!showConnections) {
               toggleConnectionsVisibility(true);
