@@ -83,17 +83,27 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     return info;
   }, [nodes, regions]);
 
-  // 定义连接规则（从 connRules prop 转换）
-  // 定义连接规则（从 connRules prop 转换，兼容策略服务和手动连接两种格式）
-  const connectionRules = useMemo(() => (connRules || []).map(c => ({
-    from: [c.fromNodeName],
-    to: c.toNodeName && c.toNodeName !== '*' ? [c.toNodeName] : '*',
-    type: c.connectionType,
-    color: c.colorHex ? parseInt(c.colorHex.replace('#', ''), 16) : 0xffffff,
-    width: c.lineWidth || 0.02,
-    flowColor: c.flowColorHex ? parseInt(c.flowColorHex.replace('#', ''), 16) : 0xffffff,
-    opacity: c.opacity || 0.5,
-  })), [connRules]);
+  // 构建 regionId → regionName 映射
+  const regionIdToName = useMemo(() => {
+    const map = {};
+    (regions || []).forEach(r => { map[r.id] = r.name; });
+    return map;
+  }, [regions]);
+
+  // 定义连接规则（用脑区名匹配，fromRegionId/toRegionId 精准关联）
+  const connectionRules = useMemo(() => (connRules || []).map(c => {
+    const fromRegionName = c.fromRegionId != null ? regionIdToName[c.fromRegionId] : null;
+    const toRegionName = c.toRegionId != null ? regionIdToName[c.toRegionId] : null;
+    return {
+      from: fromRegionName ? [fromRegionName] : [c.fromNodeName],
+      to: c.toNodeName === '*' ? '*' : (toRegionName ? [toRegionName] : (c.toNodeName ? [c.toNodeName] : '*')),
+      type: c.connectionType,
+      color: c.colorHex ? parseInt(c.colorHex.replace('#', ''), 16) : 0xffffff,
+      width: c.lineWidth || 0.02,
+      flowColor: c.flowColorHex ? parseInt(c.flowColorHex.replace('#', ''), 16) : 0xffffff,
+      opacity: c.opacity || 0.5,
+    };
+  }), [connRules, regionIdToName]);
 
   // 连接类型图例（从策略服务数据动态生成）
   const connectionLegend = useMemo(() => {
@@ -611,9 +621,9 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
             partitionIndex,
             partitionName: regionData.name,
             partitionColor: pointColor,
-            infoName: randomNode.name,
+            infoName: regionData.name,
             infoDescription: randomNode.description || '',
-            infoKey: randomNode.name || `unassigned_${pointIndex}`
+            infoKey: regionData.name
           };
 
           // 更新统计信息

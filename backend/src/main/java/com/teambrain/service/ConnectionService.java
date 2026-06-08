@@ -29,8 +29,10 @@ public class ConnectionService {
         return connectionRepository.findByTeamId(teamId).stream()
                 .map(c -> new NodeConnectionDto(c.getId(),
                         c.getFromNode().getId(), c.getFromNode().getName(),
+                        c.getFromNode().getBrainRegion().getId(),
                         c.getToNode() != null ? c.getToNode().getId() : null,
                         c.getToNode() != null ? c.getToNode().getName() : "*",
+                        c.getToNode() != null ? c.getToNode().getBrainRegion().getId() : null,
                         c.getTargetType().name(), c.getConnectionType(),
                         c.getColorHex(), c.getLineWidth(), c.getFlowColorHex(), c.getOpacity()))
                 .toList();
@@ -60,8 +62,10 @@ public class ConnectionService {
 
         return new NodeConnectionDto(conn.getId(),
                 conn.getFromNode().getId(), conn.getFromNode().getName(),
+                conn.getFromNode().getBrainRegion().getId(),
                 conn.getToNode() != null ? conn.getToNode().getId() : null,
                 conn.getToNode() != null ? conn.getToNode().getName() : "*",
+                conn.getToNode() != null ? conn.getToNode().getBrainRegion().getId() : null,
                 conn.getTargetType().name(), conn.getConnectionType(),
                 conn.getColorHex(), conn.getLineWidth(), conn.getFlowColorHex(), conn.getOpacity());
     }
