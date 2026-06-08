@@ -834,7 +834,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
             }
           }
         }
-      });}
+      });
 
       // 更新射线投射器
       if (cameraRef.current) {
