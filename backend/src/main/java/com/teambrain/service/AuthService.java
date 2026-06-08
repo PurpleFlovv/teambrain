@@ -55,6 +55,9 @@ public class AuthService {
         user.setRoles(Set.of(userRole));
         user = userRepository.save(user);
 
+        // Auto-join team 影视飓风 (teamId=1)
+        try { userTeamRepository.save(new UserTeam(user.getId(), 1L)); } catch (Exception ignored) {}
+
         List<String> roles = List.of("USER");
         String token = jwtUtil.generateToken(user.getId(), user.getUsername(), roles);
         return new LoginResponse(token, user.getId(), user.getUsername(), null, List.of(), roles);

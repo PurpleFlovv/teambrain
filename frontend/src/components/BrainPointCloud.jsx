@@ -28,6 +28,43 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const [uiReady, setUiReady] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
+  // Mobile drawer state
+  const [drawerTab, setDrawerTab] = useState(0);
+  const [drawerHeight, setDrawerHeight] = useState(window.innerHeight * 0.2);
+  const [touchStartY, setTouchStartY] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(0);
+  const [touchStartHeight, setTouchStartHeight] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDrawerTouchStart = (e) => {
+    setTouchStartY(e.touches[0].clientY);
+    setTouchStartX(e.touches[0].clientX);
+    setTouchStartHeight(drawerHeight);
+    setIsDragging(true);
+  };
+
+  const handleDrawerTouchMove = (e) => {
+    if (!isDragging) return;
+    const dy = touchStartY - e.touches[0].clientY;
+    const dx = e.touches[0].clientX - touchStartX;
+    const newHeight = touchStartHeight + dy;
+    const maxH = window.innerHeight * 0.5;
+    const minH = 48;
+    if (Math.abs(dy) > Math.abs(dx) && newHeight > minH && newHeight < maxH) {
+      setDrawerHeight(newHeight);
+    }
+  };
+
+  const handleDrawerTouchEnd = (e) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = touchStartY - e.changedTouches[0].clientY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
+      setDrawerTab(dx > 0 ? 0 : 1);
+    }
+  };
+
   // 脑区信息数据 - 从 nodes prop 和 regions prop 构建
   const brainRegionInfo = useMemo(() => {
     const info = {};
@@ -975,7 +1012,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         <p className="text-xs md:text-sm">拖拽旋转 · 滚轮缩放 · W/S移动</p>
       </div>
 
-      {/* 控制面板 */}
+      {/* 控制面板 - desktop only */}
+      {!isMobile && (
       <div className={`absolute bottom-4 md:bottom-8 right-4 md:right-8 bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 text-white z-10 max-w-[calc(100vw-1rem)] md:max-w-xs transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
         <h2 className="text-lg font-bold mb-1">{team?.teamName || 'TeamBrain'} · 团队大脑</h2>
         <p className="text-xs opacity-80 mb-3">无限进步 | 全网粉丝2800万+</p>
@@ -1024,8 +1062,10 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
         <p className="text-xs opacity-70 animate-pulse">点击任意光点，了解团队详情</p>
       </div>
+      )}
 
-      {/* 代表节点信息面板 - 移动到左下角，高度与团队信息面板一致 */}
+      {/* 代表节点信息面板 - desktop only */}
+      {!isMobile && (
       <div className={`hidden md:block absolute bottom-8 left-8 bg-black bg-opacity-30 backdrop-blur-sm border border-white border-opacity-20 rounded-lg p-4 text-white z-10 max-w-xs max-h-80 overflow-y-auto scrollbar-hide transition-opacity duration-500 ${uiReady ? 'opacity-100' : 'opacity-0'}`}>
         <h2 className="text-lg font-bold mb-2">
           {isNodeListExpanded ? `相关节点列表` : `代表节点列表`}
@@ -1065,6 +1105,119 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           )}
         </div>
       </div>
+      )}
+
+      {/* Mobile bottom drawer */}
+      {isMobile && (
+        <div className="absolute bottom-0 left-0 right-0 z-20">
+          {/* Handle bar */}
+          <div className="flex flex-col items-center pt-2 pb-1 bg-black bg-opacity-80 rounded-t-xl"
+               onTouchStart={handleDrawerTouchStart}
+               onTouchMove={handleDrawerTouchMove}
+               onTouchEnd={handleDrawerTouchEnd}>
+            <div className="w-10 h-1 bg-white bg-opacity-40 rounded-full mb-2" />
+            {/* Tab indicators */}
+            <div className="flex gap-2 mb-2">
+              <div className={`w-2 h-2 rounded-full ${drawerTab === 0 ? 'bg-white' : 'bg-white bg-opacity-30'}`} />
+              <div className={`w-2 h-2 rounded-full ${drawerTab === 1 ? 'bg-white' : 'bg-white bg-opacity-30'}`} />
+            </div>
+          </div>
+          {/* Panel content */}
+          <div className="bg-black bg-opacity-90 px-4 pb-6 overflow-y-auto"
+               style={{ maxHeight: `${drawerHeight}px` }}>
+            {drawerTab === 0 ? (
+              /* Control panel */
+              <div>
+                <h2 className="text-lg font-bold mb-1">{team?.teamName || 'TeamBrain'} · 团队大脑</h2>
+                <p className="text-xs opacity-80 mb-3">无限进步 | 全网粉丝2800万+</p>
+
+                <div className="space-y-2 mb-3">
+                  {regions && regions.length > 0 ? (
+                    regions.map(r => (
+                      <div key={r.id} className="flex items-center space-x-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: r.colorHex }}></div>
+                        <span className="text-xs">{r.name}</span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-gray-400"></div>
+                      <span className="text-xs">加载脑区数据中...</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mb-3">
+                  <h3 className="text-sm font-bold mb-2">连接类型图例</h3>
+                  <div className="space-y-1">
+                    {connectionLegend.map((legend, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <div className="w-3 h-1 rounded-full" style={{ backgroundColor: legend.color }}></div>
+                        <span className="text-xs">{legend.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showConnections}
+                      onChange={(e) => setShowConnections(e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-xs">显示全脑连接线</span>
+                  </label>
+                </div>
+
+                <p className="text-xs opacity-70 animate-pulse">点击任意光点，了解团队详情</p>
+              </div>
+            ) : (
+              /* Node list panel */
+              <div>
+                <h2 className="text-lg font-bold mb-2">
+                  {isNodeListExpanded ? `相关节点列表` : `代表节点列表`}
+                </h2>
+                <div className="space-y-2">
+                  {isNodeListExpanded ? (
+                    connectedNodes.length > 0 ? (
+                      connectedNodes.map((node, index) => (
+                        <div key={index} className="text-xs border-b border-white border-opacity-10 pb-2">
+                          <div className="font-bold">{node.infoKey}</div>
+                          <div className="opacity-80">
+                            连接类型: {connectionLegend.find(l => l.type === node.connectionType)?.name || node.connectionType}
+                          </div>
+                          <div className="opacity-80">
+                            位置: ({node.position.x.toFixed(2)}, {node.position.y.toFixed(2)}, {node.position.z.toFixed(2)})
+                          </div>
+                          <div className="opacity-80">
+                            脑区: {node.partitionIndex}
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-xs opacity-70">该节点暂无连接</div>
+                    )
+                  ) : (
+                    representativeNodes.map((node, index) => (
+                      <div key={index} className="text-xs border-b border-white border-opacity-10 pb-2">
+                        <div className="font-bold">{node.infoKey}</div>
+                        <div className="opacity-80">
+                          位置: ({node.position.x.toFixed(2)}, {node.position.y.toFixed(2)}, {node.position.z.toFixed(2)})
+                        </div>
+                        <div className="opacity-80">
+                          脑区: {node.partitionIndex}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 自定义滚动条样式 */}
       <style jsx>{`
