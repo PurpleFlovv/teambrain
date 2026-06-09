@@ -13,6 +13,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const hoveredObjectRef = useRef(null);
   const originalMaterialsRef = useRef(new Map());
   const [representativeNodes, setRepresentativeNodes] = useState([]);
+  const representativeNodesRef = useRef([]);
   const [connectedNodes, setConnectedNodes] = useState([]);
   const [isNodeListExpanded, setIsNodeListExpanded] = useState(false);
   const connectionLinesRef = useRef([]);
@@ -160,6 +161,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
     // 保存代表节点列表
     setRepresentativeNodes(representativeNodes);
+    representativeNodesRef.current = representativeNodes;
 
     // 输出代表节点列表到控制台
     console.log("代表节点列表:", representativeNodes);
@@ -475,12 +477,12 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     connectionLinesRef.current.forEach(line => {
       const { from, to, type } = line.userData;
       if (from === nodeKey) {
-        const connectedNode = representativeNodes.find(node => node.infoKey === to);
+        const connectedNode = representativeNodesRef.current.find(node => node.infoKey === to);
         if (connectedNode) {
           connectedNodesList.push({ ...connectedNode, connectionType: type });
         }
       } else if (to === nodeKey) {
-        const connectedNode = representativeNodes.find(node => node.infoKey === from);
+        const connectedNode = representativeNodesRef.current.find(node => node.infoKey === from);
         if (connectedNode) {
           connectedNodesList.push({ ...connectedNode, connectionType: type });
         }
