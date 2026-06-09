@@ -32,24 +32,24 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   // Mobile drawer state
   const [drawerTab, setDrawerTab] = useState(0);
   const [drawerHeight, setDrawerHeight] = useState(window.innerHeight * 0.2);
-  const [touchStartY, setTouchStartY] = useState(0);
-  const [touchStartX, setTouchStartX] = useState(0);
-  const [touchStartHeight, setTouchStartHeight] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const touchStartY = useRef(0);
+  const touchStartX = useRef(0);
+  const touchStartHeight = useRef(0);
+  const isDragging = useRef(false);
 
   const handleDrawerTouchStart = (e) => {
-    setTouchStartY(e.touches[0].clientY);
-    setTouchStartX(e.touches[0].clientX);
-    setTouchStartHeight(drawerHeight);
-    setIsDragging(true);
+    touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartHeight.current = drawerHeight;
+    isDragging.current = true;
   };
 
   const handleDrawerTouchMove = (e) => {
-    if (!isDragging) return;
-    const dy = touchStartY - e.touches[0].clientY;
-    const dx = e.touches[0].clientX - touchStartX;
+    if (!isDragging.current) return;
+    const dy = touchStartY.current - e.touches[0].clientY;
+    const dx = e.touches[0].clientX - touchStartX.current;
     if (dy <= 0) return; // 只响应向上扩展，忽略向下
-    const newHeight = touchStartHeight + dy;
+    const newHeight = touchStartHeight.current + dy;
     const maxH = window.innerHeight * 0.5;
     if (Math.abs(dy) > Math.abs(dx) && newHeight < maxH) {
       setDrawerHeight(newHeight);
@@ -57,10 +57,10 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   };
 
   const handleDrawerTouchEnd = (e) => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    const dx = e.changedTouches[0].clientX - touchStartX;
-    const dy = touchStartY - e.changedTouches[0].clientY;
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = touchStartY.current - e.changedTouches[0].clientY;
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
       setDrawerTab(dx > 0 ? 0 : 1);
     }
@@ -149,6 +149,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           },
           color: representativePoint.userData.partitionColor.getHex(),
           partitionIndex: representativePoint.userData.partitionIndex,
+          regionName: representativePoint.userData.partitionName || `脑区${representativePoint.userData.partitionIndex}`,
           description: representativePoint.userData.infoDescription
         };
 
@@ -1199,7 +1200,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
                             位置: ({node.position.x.toFixed(2)}, {node.position.y.toFixed(2)}, {node.position.z.toFixed(2)})
                           </div>
                           <div className="opacity-80">
-                            脑区: {node.partitionIndex}
+                            脑区: {node.regionName}
                           </div>
                         </div>
                       ))
@@ -1214,7 +1215,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
                           位置: ({node.position.x.toFixed(2)}, {node.position.y.toFixed(2)}, {node.position.z.toFixed(2)})
                         </div>
                         <div className="opacity-80">
-                          脑区: {node.partitionIndex}
+                          脑区: {node.regionName}
                         </div>
                       </div>
                     ))
