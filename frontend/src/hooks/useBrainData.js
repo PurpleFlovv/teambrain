@@ -7,6 +7,7 @@ export function useBrainData(teamId = null) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     const fetchData = async () => {
       try {
         const pointsUrl = teamId ? `/brain/points?teamId=${teamId}` : '/brain/points';

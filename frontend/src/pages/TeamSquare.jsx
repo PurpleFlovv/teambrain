@@ -11,11 +11,15 @@ const TeamSquare = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [joinedIds, setJoinedIds] = useState(new Set());
 
   useEffect(() => {
-    api.get('/teams/public').then(r => setTeams(r.data)).catch(() => {});
+    api.get('/teams/public')
+      .then(r => setTeams(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const openDetail = (team) => {
@@ -33,6 +37,15 @@ const TeamSquare = () => {
       console.error('Join failed:', err);
     }
   };
+
+  if (loading) {
+    return (
+      <PageShell maxWidth="max-w-5xl" className="overflow-y-auto h-full scrollbar-glass">
+        <h2 className="text-xl font-bold text-[var(--text-primary)] mb-6">团队广场</h2>
+        <div className="text-[var(--text-muted)] text-center py-12 animate-pulse">加载中...</div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell maxWidth="max-w-5xl" className="overflow-y-auto h-full scrollbar-glass">

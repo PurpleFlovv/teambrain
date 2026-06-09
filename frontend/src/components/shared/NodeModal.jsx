@@ -4,6 +4,7 @@ import FormField from './FormField';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const NodeModal = ({ mode, initial, teamRegions, onSave, onCancel }) => {
   const [name, setName] = useState(initial?.name || '');
@@ -37,20 +38,28 @@ const NodeModal = ({ mode, initial, teamRegions, onSave, onCancel }) => {
           <Input value={name} onChange={e => setName(e.target.value)} placeholder="节点名称" autoFocus />
         </FormField>
         <FormField label="类型">
-          <select value={nodeType} onChange={e => setNodeType(e.target.value)}
-            className="w-full bg-black bg-opacity-30 border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm">
-            <option value="MEMBER">成员</option>
-            <option value="PROJECT">项目</option>
-          </select>
+          <Select value={nodeType} onValueChange={setNodeType}>
+            <SelectTrigger className="w-full bg-black bg-opacity-30 border-[var(--glass-border)] text-[var(--text-primary)]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-[var(--bg-card)] border-[var(--glass-border)] text-[var(--text-primary)]">
+              <SelectItem value="MEMBER">成员</SelectItem>
+              <SelectItem value="PROJECT">项目</SelectItem>
+            </SelectContent>
+          </Select>
         </FormField>
         <FormField label="所属脑区">
-          <select value={brainRegionId} onChange={e => setBrainRegionId(e.target.value)}
-            className="w-full bg-black bg-opacity-30 border border-[var(--glass-border)] rounded px-3 py-2 text-[var(--text-primary)] text-sm">
-            {mode !== 'create' && <option value="">未分配</option>}
-            {teamRegions.map(r => (
-              <option key={r.id} value={String(r.id)}>{r.name}</option>
-            ))}
-          </select>
+          <Select value={brainRegionId} onValueChange={setBrainRegionId}>
+            <SelectTrigger className="w-full bg-black bg-opacity-30 border-[var(--glass-border)] text-[var(--text-primary)]">
+              <SelectValue placeholder="选择脑区..." />
+            </SelectTrigger>
+            <SelectContent className="bg-[var(--bg-card)] border-[var(--glass-border)] text-[var(--text-primary)]">
+              {mode !== 'create' && <SelectItem value="">未分配</SelectItem>}
+              {teamRegions.map(r => (
+                <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </FormField>
         <FormField label="描述">
           <Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} placeholder="节点描述（可选）" />

@@ -3,6 +3,7 @@ import BrainPointCloud from '../components/BrainPointCloud';
 import { useBrainData } from '../hooks/useBrainData';
 import { useTeamData } from '../hooks/useTeamData';
 import { useAuth } from '../context/AuthContext';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import api from '../services/api';
 
 const Index = () => {
@@ -51,12 +52,18 @@ const Index = () => {
     <div className="relative w-full h-full">
       {/* Team switcher */}
       <div className="absolute top-4 right-4 z-10">
-        <select value={activeTeamId || ''} onChange={e => switchTeam(e.target.value)}
-          className="bg-[var(--glass-bg)] backdrop-blur-[16px] border border-[var(--glass-border)] rounded px-3 py-1.5 text-[var(--text-primary)] text-sm">
-          {allTeams.filter(t => user?.teamIds?.includes(t.id) || user?.ownedTeamId === t.id).map(t => (
-            <option key={t.id} value={t.id}>{t.teamName}{t.id === user?.ownedTeamId ? ' (我的)' : ''}</option>
-          ))}
-        </select>
+        <Select value={String(activeTeamId || '')} onValueChange={v => switchTeam(v)}>
+          <SelectTrigger className="w-48 bg-[var(--glass-bg)] backdrop-blur-[16px] border-[var(--glass-border)] text-[var(--text-primary)]">
+            <SelectValue placeholder="选择团队" />
+          </SelectTrigger>
+          <SelectContent className="bg-[var(--bg-deep-space)] border-[var(--glass-border)] text-[var(--text-primary)]">
+            {allTeams.filter(t => user?.teamIds?.includes(t.id) || user?.ownedTeamId === t.id).map(t => (
+              <SelectItem key={t.id} value={String(t.id)}>
+                {t.teamName}{t.id === user?.ownedTeamId ? ' (我的)' : ''}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <BrainPointCloud

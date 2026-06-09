@@ -12,7 +12,8 @@ export function useTeamData(teamIdOverride = null) {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    if (!teamId) return;
+    if (!teamId) { setLoading(false); return; }
+    setLoading(true);
     try {
       const [teamRes, nodesRes, connRes] = await Promise.all([
         api.get(`/teams/${teamId}`),

@@ -10,10 +10,23 @@ const MyTeams = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [teams, setTeams] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/teams/my').then(r => setTeams(r.data)).catch(() => {});
+    api.get('/teams/my')
+      .then(r => setTeams(r.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
+
+  if (loading) {
+    return (
+      <PageShell maxWidth="max-w-4xl" className="overflow-y-auto h-full scrollbar-glass">
+        <h2 className="text-xl font-bold text-[var(--text-primary)] mb-6">我的团队</h2>
+        <div className="text-[var(--text-muted)] text-center py-12 animate-pulse">加载中...</div>
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell maxWidth="max-w-4xl" className="overflow-y-auto h-full scrollbar-glass">
