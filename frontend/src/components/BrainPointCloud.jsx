@@ -20,8 +20,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const flowParticlesRef = useRef([]);
   const highlightedNodeRef = useRef(null);
   const [connectionLevel, setConnectionLevel] = useState(0); // 0=无, 1=简略, 2=完整
-  const connectionLevelRef = useRef(0);
   const activeFlowParticlesRef = useRef([]);
+  const pointMeshesRef = useRef([]);
   const mouseDownPos = useRef({ x: 0, y: 0 });
 
   const [isSaving, setIsSaving] = useState(false);
@@ -255,7 +255,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
     // 性能控制：根据连接等级限制连线总数
     const maxByLevel = { 1: 200, 2: 2000 };
-    const maxConnections = maxByLevel[connectionLevelRef.current] || 0;
+    const maxConnections = maxByLevel[connectionLevel] || 0;
     if (maxConnections === 0) return;
     let finalConnections = connectionPool;
     if (connectionPool.length > maxConnections) {
@@ -454,8 +454,10 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     if (highlightedNodeRef.current === nodeKey) {
       highlightedNodeRef.current = null;
       setIsNodeListExpanded(false);
-      // 停止所有流动动画
       clearAllFlowParticles();
+      if (connectionLevel === 0) {
+        toggleConnectionsVisibility(false);
+      }
       return;
     }
 
@@ -657,7 +659,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
       // 创建全光点动态神经连接
       createDynamicConnections(localPointMeshes);
-      if (connectionLevelRef.current === 0) {
+      if (connectionLevel === 0) {
         toggleConnectionsVisibility(false);
       }
 
@@ -669,6 +671,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
         setUiReady(true);
       }, 500);
 
+      pointMeshesRef.current = localPointMeshes;
       return localPointMeshes;
     };
 
@@ -978,26 +981,22 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     };
   }, [brainRegionInfo, brainPoints, connRules]); // 使用 props 数据作为依赖
 
-  // 监听连接等级变化，控制连接线显隐
+  // 监听连接等级变化，重建连接线（不重建场景主体）
   useEffect(() => {
-    connectionLevelRef.current = connectionLevel;
-    if (connectionLevel > 0) {
-      toggleConnectionsVisibility(true);
-    } else {
-      if (!highlightedNodeRef.current) {
-        toggleConnectionsVisibility(false);
-      }
-    }
-  }, [connectionLevel]);
+    if (!sceneRef.current || pointMeshesRef.current.length === 0) return;
 
-  // 当高亮节点变化时，如果连接等级为0，需要临时显示连接线
-  useEffect(() => {
-    if (highlightedNodeRef.current && connectionLevel === 0) {
-      toggleConnectionsVisibility(true);
-    } else if (!highlightedNodeRef.current && connectionLevel === 0) {
+    highlightedNodeRef.current = null;
+    setIsNodeListExpanded(false);
+
+    if (connectionLevel === 0) {
       toggleConnectionsVisibility(false);
+      return;
     }
-  }, [highlightedNodeRef.current, connectionLevel]);
+
+    // createDynamicConnections 内部先清旧连接再建新连接
+    createDynamicConnections(pointMeshesRef.current);
+    toggleConnectionsVisibility(true);
+  }, [connectionLevel]);
 
   return (
     <div className="relative w-full h-full overflow-hidden">
@@ -1111,7 +1110,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
                     位置: ({node.position.x.toFixed(2)}, {node.position.y.toFixed(2)}, {node.position.z.toFixed(2)})
                   </div>
                   <div className="opacity-80">
-                    脑区: {node.partitionIndex}
+                    脑区: {node.regionName}
                   </div>
                 </div>
               ))
@@ -1126,7 +1125,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
                   位置: ({node.position.x.toFixed(2)}, {node.position.y.toFixed(2)}, {node.position.z.toFixed(2)})
                 </div>
                 <div className="opacity-80">
-                  脑区: {node.partitionIndex}
+                  脑区: {node.regionName}
                 </div>
               </div>
             ))
