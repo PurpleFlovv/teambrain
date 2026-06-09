@@ -31,7 +31,6 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
   // Mobile drawer state
   const [drawerTab, setDrawerTab] = useState(0);
-  const defaultDrawerHeight = useRef(window.innerHeight * 0.2);
   const [drawerHeight, setDrawerHeight] = useState(window.innerHeight * 0.2);
   const [touchStartY, setTouchStartY] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
@@ -49,10 +48,10 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     if (!isDragging) return;
     const dy = touchStartY - e.touches[0].clientY;
     const dx = e.touches[0].clientX - touchStartX;
+    if (dy <= 0) return; // 只响应向上扩展，忽略向下
     const newHeight = touchStartHeight + dy;
     const maxH = window.innerHeight * 0.5;
-    const minH = defaultDrawerHeight.current;
-    if (Math.abs(dy) > Math.abs(dx) && newHeight > minH && newHeight < maxH) {
+    if (Math.abs(dy) > Math.abs(dx) && newHeight < maxH) {
       setDrawerHeight(newHeight);
     }
   };
@@ -1117,14 +1116,26 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
       {/* Mobile bottom drawer */}
       {isMobile && (
-        <>
-          {/* Content panel — expands upward from the fixed handle bar */}
-          <div className="absolute left-0 right-0 z-20 bg-black bg-opacity-90 px-4 pb-4 overflow-y-auto transition-[bottom] duration-100"
-               style={{ bottom: `${drawerHeight}px`, top: 'auto' }}>
+        <div className="absolute bottom-0 left-0 right-0 z-20"
+             onTouchStart={handleDrawerTouchStart}
+             onTouchMove={handleDrawerTouchMove}
+             onTouchEnd={handleDrawerTouchEnd}>
+          {/* Handle bar */}
+          <div className="flex flex-col items-center pt-4 pb-3 bg-black bg-opacity-80 rounded-t-xl">
+            <div className="w-12 h-1.5 bg-white bg-opacity-50 rounded-full mb-3" />
+            {/* Tab indicators */}
+            <div className="flex gap-2 mb-2">
+              <div className={`w-2 h-2 rounded-full ${drawerTab === 0 ? 'bg-white' : 'bg-white bg-opacity-30'}`} />
+              <div className={`w-2 h-2 rounded-full ${drawerTab === 1 ? 'bg-white' : 'bg-white bg-opacity-30'}`} />
+            </div>
+          </div>
+          {/* Panel content */}
+          <div className="bg-black bg-opacity-90 px-4 pb-6 overflow-y-auto"
+               style={{ maxHeight: `${drawerHeight}px` }}>
             {drawerTab === 0 ? (
               /* Control panel */
               <div>
-                <h2 className="text-lg font-bold mb-1 pt-4">{team?.teamName || 'TeamBrain'} · 团队大脑</h2>
+                <h2 className="text-lg font-bold mb-1">{team?.teamName || 'TeamBrain'} · 团队大脑</h2>
                 <p className="text-xs opacity-80 mb-3">无限进步 | 全网粉丝2800万+</p>
 
                 <div className="space-y-2 mb-3">
@@ -1172,7 +1183,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
             ) : (
               /* Node list panel */
               <div>
-                <h2 className="text-lg font-bold mb-2 pt-4">
+                <h2 className="text-lg font-bold mb-2">
                   {isNodeListExpanded ? `相关节点列表` : `代表节点列表`}
                 </h2>
                 <div className="space-y-2">
@@ -1212,21 +1223,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
               </div>
             )}
           </div>
-
-          {/* Handle bar — fixed at bottom, touch target only for expanding */}
-          <div className="absolute bottom-0 left-0 right-0 z-20"
-               onTouchStart={handleDrawerTouchStart}
-               onTouchMove={handleDrawerTouchMove}
-               onTouchEnd={handleDrawerTouchEnd}>
-            <div className="flex flex-col items-center pt-4 pb-3 bg-black bg-opacity-80 rounded-t-xl">
-              <div className="w-12 h-1.5 bg-white bg-opacity-50 rounded-full mb-3" />
-              <div className="flex gap-2 mb-2">
-                <div className={`w-2 h-2 rounded-full ${drawerTab === 0 ? 'bg-white' : 'bg-white bg-opacity-30'}`} />
-                <div className={`w-2 h-2 rounded-full ${drawerTab === 1 ? 'bg-white' : 'bg-white bg-opacity-30'}`} />
-              </div>
-            </div>
-          </div>
-        </>
+        </div>
       )}
 
       {/* 自定义滚动条样式 */}
