@@ -84,15 +84,17 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   }, [nodes, regions]);
 
   // 定义连接规则（用节点名匹配，兼容策略服务和手动连接两种格式）
-  const connectionRules = useMemo(() => (connRules || []).map(c => ({
-    from: [c.fromNodeName],
-    to: c.toNodeName && c.toNodeName !== '*' ? [c.toNodeName] : '*',
-    type: c.connectionType,
-    color: c.colorHex ? parseInt(c.colorHex.replace('#', ''), 16) : 0xffffff,
-    width: c.lineWidth || 0.02,
-    flowColor: c.flowColorHex ? parseInt(c.flowColorHex.replace('#', ''), 16) : 0xffffff,
-    opacity: c.opacity || 0.5,
-  })), [connRules]);
+  const connectionRules = useMemo(() => (connRules || [])
+    .filter(c => c.fromNodeName)
+    .map(c => ({
+      from: [c.fromNodeName],
+      to: c.toNodeName && c.toNodeName !== '*' ? [c.toNodeName] : '*',
+      type: c.connectionType,
+      color: c.colorHex ? parseInt(c.colorHex.replace('#', ''), 16) : 0xffffff,
+      width: c.lineWidth || 0.02,
+      flowColor: c.flowColorHex ? parseInt(c.flowColorHex.replace('#', ''), 16) : 0xffffff,
+      opacity: c.opacity || 0.5,
+    })), [connRules]);
 
   // 连接类型图例（从策略服务数据动态生成）
   const connectionLegend = useMemo(() => {
@@ -595,11 +597,11 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           const sphere = new THREE.Mesh(geometry, material);
           sphere.position.set(x, y, z);
 
-          // 为每个点随机分配脑区信息（从 nodes prop）
+          // 为每个点分配脑区信息（从 nodes prop，按 brainRegionId 匹配）
           const regionNodes = nodes.filter(n => n.brainRegionId === parseInt(regionId));
           const randomNode = regionNodes.length > 0
             ? regionNodes[Math.floor(Math.random() * regionNodes.length)]
-            : { name: '未分配', description: '' };
+            : { name: regionData.name || '未分配', description: '' };
 
           sphere.userData = {
             partitionIndex,
