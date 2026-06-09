@@ -19,8 +19,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const connectionLinesRef = useRef([]);
   const flowParticlesRef = useRef([]);
   const highlightedNodeRef = useRef(null);
-  const [showConnections, setShowConnections] = useState(true);
-  const showConnectionsRef = useRef(true);
+  const [connectionLevel, setConnectionLevel] = useState(0); // 0=无, 1=简略, 2=完整
+  const connectionLevelRef = useRef(0);
   const activeFlowParticlesRef = useRef([]);
   const mouseDownPos = useRef({ x: 0, y: 0 });
 
@@ -253,10 +253,13 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       });
     });
 
-    // 性能控制：最终生成的连线总数量应控制在2000条以内
+    // 性能控制：根据连接等级限制连线总数
+    const maxByLevel = { 1: 200, 2: 2000 };
+    const maxConnections = maxByLevel[connectionLevelRef.current] || 0;
+    if (maxConnections === 0) return;
     let finalConnections = connectionPool;
-    if (connectionPool.length > 2000) {
-      finalConnections = [...connectionPool].sort(() => 0.5 - Math.random()).slice(0, 2000);
+    if (connectionPool.length > maxConnections) {
+      finalConnections = [...connectionPool].sort(() => 0.5 - Math.random()).slice(0, maxConnections);
     }
 
     // 生成连接线
@@ -654,7 +657,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
       // 创建全光点动态神经连接
       createDynamicConnections(localPointMeshes);
-      if (!showConnectionsRef.current) {
+      if (connectionLevelRef.current === 0) {
         toggleConnectionsVisibility(false);
       }
 
@@ -941,8 +944,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           const nodeKey = clickedObject.userData.infoKey;
 
           if (nodeKey) {
-            // 临时显示连接线（覆盖复选框状态）
-            if (!showConnections) {
+            // 临时显示连接线（覆盖等级设置）
+            if (connectionLevel === 0) {
               toggleConnectionsVisibility(true);
             }
 
@@ -975,27 +978,26 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     };
   }, [brainRegionInfo, brainPoints, connRules]); // 使用 props 数据作为依赖
 
-  // 监听 showConnections 状态变化，控制连接线显隐
+  // 监听连接等级变化，控制连接线显隐
   useEffect(() => {
-    showConnectionsRef.current = showConnections;
-    if (showConnections) {
+    connectionLevelRef.current = connectionLevel;
+    if (connectionLevel > 0) {
       toggleConnectionsVisibility(true);
     } else {
-      // 只有在没有高亮节点时才隐藏连接线
       if (!highlightedNodeRef.current) {
         toggleConnectionsVisibility(false);
       }
     }
-  }, [showConnections]);
+  }, [connectionLevel]);
 
-  // 当高亮节点变化时，如果 showConnections 为 false，需要临时显示连接线
+  // 当高亮节点变化时，如果连接等级为0，需要临时显示连接线
   useEffect(() => {
-    if (highlightedNodeRef.current && !showConnections) {
+    if (highlightedNodeRef.current && connectionLevel === 0) {
       toggleConnectionsVisibility(true);
-    } else if (!highlightedNodeRef.current && !showConnections) {
+    } else if (!highlightedNodeRef.current && connectionLevel === 0) {
       toggleConnectionsVisibility(false);
     }
-  }, [highlightedNodeRef.current, showConnections]);
+  }, [highlightedNodeRef.current, connectionLevel]);
 
   return (
     <div className="relative w-full h-full overflow-hidden">
@@ -1055,18 +1057,36 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           </div>
         </div>
 
-        {/* 添加显示连接线的复选框 */}
+                {/* 连接线显示等级滑动条 */}
+        <div className="mb-3">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-xs">全局连接线</span>
+            <span className="text-xs opacity-70">
+              {connectionLevel === 0 ? '无' : connectionLevel === 1 ? '简略' : '完整'}
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0" max="2" step="1"
+            value={connectionLevel}
+            onChange={(e) => setConnectionLevel(parseInt(e.target.value))}
+            className="w-full h-1.5 appearance-none bg-white bg-opacity-20 rounded-full outline-none
+                       [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                       [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer"
+          />
+          <div className="flex justify-between text-[10px] opacity-50 mt-0.5 px-0.5">
+            <span>无</span><span>简略</span><span>完整</span>
+          </div>
+        </div>
+        {/*
+        旧复选框代码，保留备用
         <div className="mb-3">
           <label className="flex items-center space-x-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showConnections}
-              onChange={(e) => setShowConnections(e.target.checked)}
-              className="w-4 h-4"
-            />
+            <input type="checkbox" checked={showConnections} onChange={(e) => setShowConnections(e.target.checked)} className="w-4 h-4" />
             <span className="text-xs">显示全脑连接线</span>
           </label>
         </div>
+        */}
 
         <p className="text-xs opacity-70 animate-pulse">点击任意光点，了解团队详情</p>
       </div>
@@ -1121,8 +1141,13 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
              onTouchStart={handleDrawerTouchStart}
              onTouchMove={handleDrawerTouchMove}
              onTouchEnd={handleDrawerTouchEnd}>
-          {/* Handle bar */}
-          <div className="flex flex-col items-center pt-4 pb-3 bg-black bg-opacity-80 rounded-t-xl">
+          {/* Handle bar — tap to collapse when expanded */}
+          <div className="flex flex-col items-center pt-4 pb-3 bg-black bg-opacity-80 rounded-t-xl cursor-pointer"
+               onClick={() => {
+                 if (!isDragging.current && drawerHeight > window.innerHeight * 0.2) {
+                   setDrawerHeight(window.innerHeight * 0.2);
+                 }
+               }}>
             <div className="w-12 h-1.5 bg-white bg-opacity-50 rounded-full mb-3" />
             {/* Tab indicators */}
             <div className="flex gap-2 mb-2">
@@ -1167,16 +1192,26 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
                   </div>
                 </div>
 
+                {/* 连接线显示等级滑动条 */}
                 <div className="mb-3">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={showConnections}
-                      onChange={(e) => setShowConnections(e.target.checked)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-xs">显示全脑连接线</span>
-                  </label>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs">全局连接线</span>
+                    <span className="text-xs opacity-70">
+                      {connectionLevel === 0 ? '无' : connectionLevel === 1 ? '简略' : '完整'}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0" max="2" step="1"
+                    value={connectionLevel}
+                    onChange={(e) => setConnectionLevel(parseInt(e.target.value))}
+                    className="w-full h-1.5 appearance-none bg-white bg-opacity-20 rounded-full outline-none
+                               [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                               [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] opacity-50 mt-0.5 px-0.5">
+                    <span>无</span><span>简略</span><span>完整</span>
+                  </div>
                 </div>
 
                 <p className="text-xs opacity-70 animate-pulse">点击任意光点，了解团队详情</p>
