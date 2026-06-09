@@ -31,6 +31,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
   // Mobile drawer state
   const [drawerTab, setDrawerTab] = useState(0);
+  const defaultDrawerHeight = useRef(window.innerHeight * 0.2);
   const [drawerHeight, setDrawerHeight] = useState(window.innerHeight * 0.2);
   const [touchStartY, setTouchStartY] = useState(0);
   const [touchStartX, setTouchStartX] = useState(0);
@@ -50,7 +51,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     const dx = e.touches[0].clientX - touchStartX;
     const newHeight = touchStartHeight + dy;
     const maxH = window.innerHeight * 0.5;
-    const minH = 48;
+    const minH = defaultDrawerHeight.current;
     if (Math.abs(dy) > Math.abs(dx) && newHeight > minH && newHeight < maxH) {
       setDrawerHeight(newHeight);
     }
@@ -472,18 +473,21 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     // 启动流动动画
     startFlowAnimation(nodeKey);
 
-    // 更新相关节点列表
+    // 更新相关节点列表（去重）
+    const seen = new Set();
     const connectedNodesList = [];
     connectionLinesRef.current.forEach(line => {
       const { from, to, type } = line.userData;
       if (from === nodeKey) {
         const connectedNode = representativeNodesRef.current.find(node => node.infoKey === to);
-        if (connectedNode) {
+        if (connectedNode && !seen.has(to)) {
+          seen.add(to);
           connectedNodesList.push({ ...connectedNode, connectionType: type });
         }
       } else if (to === nodeKey) {
         const connectedNode = representativeNodesRef.current.find(node => node.infoKey === from);
-        if (connectedNode) {
+        if (connectedNode && !seen.has(from)) {
+          seen.add(from);
           connectedNodesList.push({ ...connectedNode, connectionType: type });
         }
       }
