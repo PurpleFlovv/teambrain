@@ -20,6 +20,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   const flowParticlesRef = useRef([]);
   const highlightedNodeRef = useRef(null);
   const [connectionLevel, setConnectionLevel] = useState(0); // 0=无, 1=简略, 2=完整
+  const [sliderValue, setSliderValue] = useState(0); // 拖动时跟随手指，松开时吸附
   const activeFlowParticlesRef = useRef([]);
   const pointMeshesRef = useRef([]);
   const mouseDownPos = useRef({ x: 0, y: 0 });
@@ -64,6 +65,13 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
     if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 60) {
       setDrawerTab(dx > 0 ? 0 : 1);
     }
+  };
+
+  // 滑动条：拖动时连续跟随，松手时吸附到最近档位
+  const commitLevel = () => {
+    const snapped = Math.round(sliderValue);
+    setSliderValue(snapped);
+    if (snapped !== connectionLevel) setConnectionLevel(snapped);
   };
 
   // 脑区信息数据 - 从 nodes prop 和 regions prop 构建
@@ -1077,9 +1085,11 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           </div>
           <input
             type="range"
-            min="0" max="2" step="1"
-            value={connectionLevel}
-            onChange={(e) => setConnectionLevel(parseInt(e.target.value))}
+            min="0" max="2" step="0.01"
+            value={sliderValue}
+            onChange={(e) => setSliderValue(parseFloat(e.target.value))}
+            onMouseUp={commitLevel}
+            onTouchEnd={commitLevel}
             className="w-full h-1.5 appearance-none bg-white bg-opacity-20 rounded-full outline-none
                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
                        [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer"
@@ -1212,9 +1222,11 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
                   </div>
                   <input
                     type="range"
-                    min="0" max="2" step="1"
-                    value={connectionLevel}
-                    onChange={(e) => setConnectionLevel(parseInt(e.target.value))}
+                    min="0" max="2" step="0.01"
+                    value={sliderValue}
+                    onChange={(e) => setSliderValue(parseFloat(e.target.value))}
+                    onMouseUp={commitLevel}
+                    onTouchEnd={commitLevel}
                     className="w-full h-1.5 appearance-none bg-white bg-opacity-20 rounded-full outline-none
                                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
                                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer"
