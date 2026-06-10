@@ -51,9 +51,9 @@ const Index = () => {
   return (
     <div className="relative w-full h-full">
       {/* Team switcher */}
-      <div className="absolute top-4 right-4 z-10">
+      <div className="absolute top-8 right-8 z-10">
         <Select value={String(activeTeamId || '')} onValueChange={v => switchTeam(v)}>
-          <SelectTrigger className="w-48 bg-[var(--glass-bg)] backdrop-blur-[16px] border-[var(--glass-border)] text-[var(--text-primary)]">
+          <SelectTrigger className="w-32 bg-[var(--glass-bg)] backdrop-blur-[16px] border-[var(--glass-border)] text-[var(--text-primary)]">
             <SelectValue placeholder="选择团队" />
           </SelectTrigger>
           <SelectContent className="bg-[var(--bg-deep-space)] border-[var(--glass-border)] text-[var(--text-primary)]">

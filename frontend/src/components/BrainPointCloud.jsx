@@ -171,7 +171,8 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
   };
 
   // 创建全光点动态神经连接
-  const createDynamicConnections = (pointMeshes) => {
+  const createDynamicConnections = (pointMeshes, levelOverride) => {
+    const level = levelOverride != null ? levelOverride : connectionLevel;
     // 清空现有连接线和流动粒子
     connectionLinesRef.current.forEach(line => {
       sceneRef.current.remove(line);
@@ -255,7 +256,7 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
 
     // 性能控制：根据连接等级限制连线总数
     const maxByLevel = { 1: 200, 2: 2000 };
-    const maxConnections = maxByLevel[connectionLevel] || 0;
+    const maxConnections = maxByLevel[level] || 0;
     if (maxConnections === 0) return;
     let finalConnections = connectionPool;
     if (connectionPool.length > maxConnections) {
@@ -456,6 +457,15 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
       setIsNodeListExpanded(false);
       clearAllFlowParticles();
       if (connectionLevel === 0) {
+        // 清除按需创建的连接线
+        connectionLinesRef.current.forEach(line => sceneRef.current.remove(line));
+        flowParticlesRef.current.forEach(p => {
+          sceneRef.current.remove(p.mesh);
+          if (p.tailParticles) p.tailParticles.forEach(t => sceneRef.current.remove(t));
+        });
+        connectionLinesRef.current = [];
+        flowParticlesRef.current = [];
+      } else {
         toggleConnectionsVisibility(false);
       }
       return;
@@ -947,10 +957,11 @@ const BrainPointCloud = ({ brainPoints, regions, team, nodes, connRules, onRefre
           const nodeKey = clickedObject.userData.infoKey;
 
           if (nodeKey) {
-            // 临时显示连接线（覆盖等级设置）
-            if (connectionLevel === 0) {
-              toggleConnectionsVisibility(true);
+            // level=0 时按需创建简略连接线
+            if (connectionLevel === 0 && connectionLinesRef.current.length === 0) {
+              createDynamicConnections(pointMeshesRef.current, 1);
             }
+            toggleConnectionsVisibility(true);
 
             highlightConnections(nodeKey);
           }
