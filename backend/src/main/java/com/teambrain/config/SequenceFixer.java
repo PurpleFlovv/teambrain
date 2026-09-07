@@ -3,20 +3,21 @@ package com.teambrain.config;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
-public class SequenceFixer {
+@Order(1) // After data.sql, before MockDataSeeder: sync sequences so seed inserts don't collide with data.sql's explicit ids
+public class SequenceFixer implements CommandLineRunner {
 
     @PersistenceContext
     private EntityManager em;
 
-    @EventListener(ApplicationReadyEvent.class)
+    @Override
     @Transactional
-    public void fixSequences() {
+    public void run(String... args) {
         String[] tables = {"sys_user", "sys_role", "team",
             "team_node", "brain_region", "node_connection",
             "connection_type", "audit_log", "brain_point"};
