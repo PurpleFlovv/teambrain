@@ -22,15 +22,18 @@ public class MockDataSeeder implements CommandLineRunner {
     private final TeamNodeRepository nodeRepo;
     private final NodeConnectionRepository connRepo;
     private final BrainRegionRepository regionRepo;
+    private final BrainPointRepository brainPointRepo;
     private final UserTeamRepository userTeamRepo;
     private final PasswordEncoder encoder;
 
     public MockDataSeeder(UserRepository ur, RoleRepository rr, TeamRepository tr,
                           TeamNodeRepository nr, NodeConnectionRepository cr,
-                          BrainRegionRepository br, UserTeamRepository utr, PasswordEncoder pe) {
+                          BrainRegionRepository br, BrainPointRepository bpr,
+                          UserTeamRepository utr, PasswordEncoder pe) {
         this.userRepo = ur; this.roleRepo = rr; this.teamRepo = tr;
         this.nodeRepo = nr; this.connRepo = cr;
-        this.regionRepo = br; this.userTeamRepo = utr; this.encoder = pe;
+        this.regionRepo = br; this.brainPointRepo = bpr;
+        this.userTeamRepo = utr; this.encoder = pe;
     }
 
     @Override
@@ -41,9 +44,12 @@ public class MockDataSeeder implements CommandLineRunner {
         }
         if (allExist) return;
 
-        // Clean up partial mock data before re-seeding
+        // Clean up partial demo data before re-seeding. A demo user owns a team
+        // (team.user_id FK), so deleting the user first violates that constraint and
+        // crashes startup whenever an earlier boot was interrupted mid-seed. Remove
+        // each demo user's owned team and its dependents first.
         for (int i = 10; i <= 17; i++) {
-            userRepo.findByUsername("user" + i).ifPresent(u -> userRepo.delete(u));
+            userRepo.findByUsername("user" + i).ifPresent(this::deleteDemoUser);
         }
 
         Role userRole = roleRepo.findByName("USER").orElseThrow();
@@ -195,5 +201,27 @@ public class MockDataSeeder implements CommandLineRunner {
         }
 
         System.out.println("Mock data seeded: " + teamData.length + " teams, " + uid + " users");
+    }
+
+    private void deleteDemoUser(User user) {
+        // Remove the team this user owns (and everything it references) before
+        // deleting the user, otherwise the team.user_id FK blocks the delete.
+        teamRepo.findByUserId(user.getId()).ifPresent(this::deleteTeamGraph);
+        // Clear memberships of this user in any other team.
+        userTeamRepo.findByUserId(user.getId()).forEach(userTeamRepo::delete);
+        userRepo.delete(user);
+    }
+
+    private void deleteTeamGraph(Team team) {
+        Long teamId = team.getId();
+        connRepo.findByTeamId(teamId).forEach(connRepo::delete);
+        nodeRepo.findByTeamId(teamId).forEach(nodeRepo::delete);
+        for (BrainRegion region : regionRepo.findByTeamIdOrderBySortOrderAsc(teamId)) {
+            brainPointRepo.findByBrainRegionId(region.getId()).forEach(brainPointRepo::delete);
+            regionRepo.delete(region);
+        }
+        // Memberships pointing at this team must go before the team row.
+        userTeamRepo.findByTeamId(teamId).forEach(userTeamRepo::delete);
+        teamRepo.delete(team);
     }
 }
