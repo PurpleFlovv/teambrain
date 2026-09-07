@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${PG_HOST:localhost}:${PG_PORT:5432}/${PG_DATABASE:teambrain}
+    url: jdbc:postgresql://${PG_HOST:localhost}:${PG_PORT:5432}/${PG_DATABASE:teambrain}?sslmode=${PG_SSL_MODE:prefer}
     username: ${PG_USER:teambrain}
     password: ${PG_PASSWORD:}
     driver-class-name: org.postgresql.Driver

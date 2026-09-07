@@ -1,10 +1,7 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://${PG_HOST}:${PG_PORT:5432}/${PG_DATABASE:teambrain}
   jpa:
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
 
 server:
   port: ${PORT:8080}
